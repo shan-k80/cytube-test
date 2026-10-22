@@ -7289,4 +7289,17 @@ $("head").append('<style id="boki-premium-fix">' +
   '</style>');
 
 // Hide Premium layout switches that conflict with BokiTube's DOM layout.
-["#layout-3", "#layout-4", "#layout-5", "#layout-6", "#layout-7", "#layout-8", "#layout-9", "#layout-10"
+["#layout-3", "#layout-4", "#layout-5", "#layout-6", "#layout-7", "#layout-8", "#layout-9", "#layout-10"].forEach(function(selector) {
+  var item = document.querySelector(selector);
+  if (item) {
+    var listItem = item.closest("li");
+    if (listItem) listItem.remove();
+  }
+});
+// Inline handlers in the chat markup need explicit window exports.
+window.bokiInsertText = bokiInsertText;
+window.switchEp = switchEp;
+window.scrollToReply = scrollToReply;
+window.replyToButton = replyToButton;
+})();
+
