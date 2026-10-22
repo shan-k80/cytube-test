@@ -7259,13 +7259,17 @@ $("head").append('<style id="boki-premium-fix">' +
   /* BokiTube は使わない拡大縮小ボタン（Premium の時計の挿入先なので削除せず非表示） */
   '#resize-video-smaller,#resize-video-larger{display:none!important}' +
   /* ツールバー：折り返し・縦位置・右寄せ */
-  '#leftcontrols{flex-wrap:wrap;align-items:center;gap:4px;box-sizing:border-box}' +
+  '#leftcontrols{flex:0 0 auto;flex-wrap:wrap!important;align-items:center;gap:4px;box-sizing:border-box}' +
   '#leftcontrols>.btn,#leftcontrols .btn-group{float:none!important;margin:0!important}' +
-  '#leftcontrols .btn-group{display:inline-flex;vertical-align:middle}' +
-  '#leftcontrols .btn{display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 10px;line-height:1}' +
+  '#leftcontrols .btn-group{display:inline-flex!important;flex-wrap:nowrap!important;vertical-align:middle}' +
+  '#leftcontrols .btn{float:none!important;display:inline-flex;align-items:center;justify-content:center;height:30px;padding:0 10px;line-height:1;white-space:nowrap}' +
   '#leftcontrols .btn svg{flex:none}' +
-  '#leftcontrols #chatcontrols{margin-left:auto!important}' +
-  '#leftcontrols #afk-btn{margin-left:0}' +
+  /* 右側ボタン群（絵・メモ・音・機能・設定）は1つの塊として折り返す（途中で割れない） */
+  '#leftcontrols #chatcontrols{display:inline-flex!important;flex:0 0 auto!important;flex-wrap:nowrap!important;order:10;margin-left:auto!important}' +
+  '#leftcontrols #chatcontrols>*{float:none!important}' +
+  '#leftcontrols #afk-btn{order:5;margin-left:auto!important}' +
+  '#leftcontrols #clear-btn{order:6}' +
+  '#messagebuffer{min-height:0}' +
   /* BokiTube の ".btn{background-color}" が状態色を潰すので復元（Premium のトグル表示用） */
   '.btn.btn-success{background-color:#5cb85c}' +
   '.btn.btn-warning{background-color:#f0ad4e}' +
@@ -7285,17 +7289,4 @@ $("head").append('<style id="boki-premium-fix">' +
   '</style>');
 
 // Hide Premium layout switches that conflict with BokiTube's DOM layout.
-["#layout-3", "#layout-4", "#layout-5", "#layout-6", "#layout-7", "#layout-8", "#layout-9", "#layout-10"].forEach(function(selector) {
-  var item = document.querySelector(selector);
-  if (item) {
-    var listItem = item.closest("li");
-    if (listItem) listItem.remove();
-  }
-});
-// Inline handlers in the chat markup need explicit window exports.
-window.bokiInsertText = bokiInsertText;
-window.switchEp = switchEp;
-window.scrollToReply = scrollToReply;
-window.replyToButton = replyToButton;
-})();
-
+["#layout-3", "#layout-4", "#layout-5", "#layout-6", "#layout-7", "#layout-8", "#layout-9", "#layout-10"
