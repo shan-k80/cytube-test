@@ -7255,6 +7255,14 @@ document.querySelector(".container-fluid")?.style.setProperty("display","none"),
 // ---- Premium × BokiTube 表示調整 ----
 $("#chat-f4").closest("li").remove(); // "Userlist on Right" は横並びユーザーリストと両立しない
 if (BOKI_CHATWRAP_OVERLAY) $("#chatwrap").appendTo("#rightcontent");
+// Premium 由来のボタン群（Colors／お絵かき／メモ／音／チャット機能／設定）を動画直下のコントロール行へ移動
+(function() {
+  $("#chatcontrols").removeClass("pull-right");
+  // 下向きに開くよう dropup → dropdown に変更（上向きだと動画に被る）
+  $("#chatfunc-outer, #chatopts-outer, #colors-menu").removeClass("dropup").addClass("dropdown");
+  $("#colors-btn, #chatfunc-btn, #chatopts-btn").each(function() { this.innerHTML = this.innerHTML.replace(/\u25B4/g, "\u25BE"); });
+  $("#rightcontrols").append($("#pollcontrols")).append($("#chatcontrols"));
+})();
 $("head").append('<style id="boki-premium-fix">' +
   /* BokiTube は使わない拡大縮小ボタン（Premium の時計の挿入先なので削除せず非表示） */
   '#resize-video-smaller,#resize-video-larger{display:none!important}' +
@@ -7270,6 +7278,8 @@ $("head").append('<style id="boki-premium-fix">' +
   '#leftcontrols #afk-btn{order:5;margin-left:auto!important}' +
   '#leftcontrols #clear-btn{order:6}' +
   '#messagebuffer{min-height:0}' +
+  '#rightcontrols #pollcontrols,#rightcontrols #chatcontrols{display:inline-flex!important;flex-wrap:nowrap!important;float:none!important;margin:0!important;align-items:center}' +
+  '#rightcontrols #pollcontrols>*,#rightcontrols #chatcontrols>*{float:none!important}' +
   /* BokiTube の ".btn{background-color}" が状態色を潰すので復元（Premium のトグル表示用） */
   '.btn.btn-success{background-color:#5cb85c}' +
   '.btn.btn-warning{background-color:#f0ad4e}' +
