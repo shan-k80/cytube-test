@@ -892,24 +892,6 @@ function mediaClock() {
 	$("#totalclock").html(tot);
 }
 
-// Add premium info after media change
-
-function nowPlaying() {
-	if (PREMIUMNOTMODE < 3) return;
-	if (NowPlaying == "") NowPlaying = 'Now playing';
-	if (hasPermission("seeplaylist")) {
-		var uid = $(".queue_active").data("media");
-		var html = NowPlaying + ': ' + uid.title + ' [' + uid.duration + ']';
-		if ($favsBtn.hasClass('btn-success')) html += ' <span class="glyphicon glyphicon-thumbs-up"></span>';
-	} else if (PLAYER) {
-		var html = NowPlaying + ': ';
-		if (CustomTitleCaption != "") html += $("#currenttitle").html().replace(CustomTitleCaption, "")
-		else html += $("#currenttitle").html().replace("Currently Playing: ", "");
-		html += ' [' + formatTime(PLAYER.mediaLength) + ']';
-	}
-	if (!NOPLAYER) addChatNotification(html);
-}
-
 // Update user online time
 
 function onlineTime() {
@@ -3144,13 +3126,6 @@ $("#layout-1").on("click", function() {
 		 +       '<option value="t-left">top left</option>'
 		 +       '<option value="t-right">top right</option></select></div>'
 		 + '</div><div class="form-group">'
-		 +   '<label class="control-label col-sm-5">Mode of additional Premium Notifications</label>'
-		 +   '<div class="col-sm-7 config-col">'
-		 +     '<select id="premiumnotmode" class="form-control"><option value="1">don\'t show neither</option>'
-		 +       '<option value="2">show only "user joined/disconnected"</option>'
-		 +       '<option value="3">show only "now playing"</option>'
-		 +       '<option value="4">show both</option></select></div>'
-		 + '</div><div class="form-group">'
 		 +   '<label class="control-label col-sm-5">Mode of "Ignore" chat text menu option</label>'
 		 +   '<div class="col-sm-7 config-col">'
 		 +     '<select id="ignorechatmode" class="form-control"><option value="1">ignore only colors</option>'
@@ -3173,7 +3148,6 @@ $("#layout-1").on("click", function() {
 	$("#chatmaxsize").val(CHATMAXSIZE);
 	$("#emotesperpage").val(EMOTESPERPAGE);
 	$("#emotesprevpos").val(EMOTESPREVPOS);
-	$("#premiumnotmode").val(PREMIUMNOTMODE);
 	$("#ignorechatmode").val(IGNORECHATMODE);
 	$("#hideplayerurl").val(HIDEPLAYERURL);
 	if (IMAGEURLACCEPT) $("#imageurlaccept").prop('checked', true);
@@ -3203,9 +3177,6 @@ $("#layout-1").on("click", function() {
 		EMOTESPREVPOS = $("#emotesprevpos").val();
 		$("#emote-view").removeClass().addClass(EMOTESPREVPOS);
 		setOpt('SP_emotesprevpos', EMOTESPREVPOS);
-	});
-	$("#premiumnotmode").on("change", function() {
-		setOpt('SP_premiumnotmode', PREMIUMNOTMODE = $("#premiumnotmode").val());
 	});
 	$("#ignorechatmode").on("change", function() {
 		IGNORECHATMODE = $("#ignorechatmode").val();
@@ -7035,15 +7006,10 @@ if (USERNAMEMARK != ":") {
 // Initialize sockets
 
 socket.on("addUser", function(data) {
-	if (PREMIUMNOTMODE == 2 || PREMIUMNOTMODE == 4) {
-		if (JoinMessage == "") JoinMessage = 'joined';
-		addChatNotification(data.name + ' ' + JoinMessage);
-	}
 	if (AVATARSLIST) refreshAvatarsList();
 });
 socket.on("changeMedia", function() {
 	handleMediaChange();
-	nowPlaying();
 });
 socket.on("channelCSSJS", function() {
 	CHANCSS = $("#chancss").length > 0 ? $("#chancss").html() : '';
@@ -7103,10 +7069,6 @@ socket.on("setPlaylistLocked", function() {
 	}, 1000);
 });
 socket.on("userLeave", function(data) {
-	if (PREMIUMNOTMODE == 2 || PREMIUMNOTMODE == 4) {
-		if (LeaveMessage == "") LeaveMessage = 'disconnected';
-		addChatNotification(data.name + ' ' + LeaveMessage);
-	}
 	if (AVATARSLIST) refreshAvatarsList();
 });
 
@@ -7121,7 +7083,6 @@ scrollChat();
 scrollQueue();
 handleLogin();
 handleMediaChange();
-setTimeout(function() {nowPlaying()}, 1500);
 setTimeout(function() {scrollChat()}, 2000);
 if (CHATTOTOP) setTimeout(function() {scrollChatToTop()}, 500);
 
@@ -7171,9 +7132,6 @@ if (WelcomeSoundFileURL != "" && PLAYWELCOME) {
 // Notification if API has been succesfully loaded
 
 LOADED = true;
-var time = Math.round(new Date().getTime() - START) / 1000;
-var cust = (CHANNEL.opts.externaljs.indexOf(DROPBOX + "1dyazoq6t7wh808/Premium.js") < 0) ? ' [customized]' : '';
-addChatNotification('Synchtube Premium v. ' + VERSION + '' + cust + ' activated (in ' + time + ' s.)');
 
 
 // Admin notifications
