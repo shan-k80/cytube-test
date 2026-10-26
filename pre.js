@@ -7187,17 +7187,6 @@ if (EMOTESCACHE) {
 		}
 	}
 }
-// エモートの複数連続表示（グローバル置換）に対応させるパッチ
-window.execEmotes = function(msg) {
-	for (var i in CHANNEL.emotes) {
-		var emote = CHANNEL.emotes[i];
-		// エモート名に含まれる正規表現の特殊文字をエスケープして、/g（全体）で置換するよ…ふふ
-		var escapedName = emote.name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-		var re = new RegExp(escapedName, 'g');
-		msg = msg.replace(re, '<img class="channel-emote" src="' + emote.image + '" title="' + emote.name + '" />');
-	}
-	return msg;
-};
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
