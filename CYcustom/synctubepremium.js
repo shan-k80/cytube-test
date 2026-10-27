@@ -2228,11 +2228,20 @@ var html = '<button id="pls-btn" class="btn btn-sm btn-default dropdown-toggle" 
 	 +     'Hide Buttons</a></li></ul>';
 $plsbtnouter = $('<div id="plsbtn-outer" class="btn-group" />').appendTo("#plcontrol").html(html);
 
-// Remove legacy contributors-ranking and download controls.
-$("#pls-2, #pls-3").each(function() {
-	$(this).closest("li").remove();
-	$(this).remove();
-});
+// Remove legacy contributors-ranking, download, and miniature controls.
+function removeLegacyPlaylistControls() {
+	$("#pls-2, #pls-3, #pls-10").each(function() {
+		$(this).closest("li").remove();
+		$(this).remove();
+	});
+	$("#pls-menu a").filter(function() {
+		return /contributors ranking|download|show miniatures/i.test($(this).text());
+	}).each(function() {
+		$(this).closest("li").remove();
+		$(this).remove();
+	});
+}
+removeLegacyPlaylistControls();
 
 if (PLSNUMBERS) {
 	$("#pls-4").addClass('activated');
@@ -6705,7 +6714,8 @@ var chatlineHT = $chatline.outerHeight();
 var chatbtnHT = (USEROPTS.chatbtn) ? $("#chatbtn").outerHeight() : 0;
 if (PlayerCoveringURL == "") PlayerCoveringURL = DROPBOX + '3qp3v6ychbswqvm/stop.png';
 
-var css = '.autoscroll {overflow-y:auto !important}\n'
+var css = '#queue img, #queue .miniature {display:none !important}\n'
+	+ '.autoscroll {overflow-y:auto !important}\n'
 	+ '.expanded {max-height:100000px !important}\n'
 	+ '.hidden {display:none !important}\n'
 	+ '.modal.nobackdrop, .modal-open.nobackdrop {padding-right:0px !important}\n'
@@ -6864,6 +6874,21 @@ var _name = (ChannelName == "") ? '/' + CHANNELPATH + '/' + window.location.href
 css += '.navbar-brand:before {content:"' + _name + '" !important; font-size:14pt !important}\n';
 
 $("head").append('<style id="hardcss" type="text/css">' + css + '</style>');
+
+// Final cleanup after UI construction: remove only the three explicitly disabled features.
+function removeDisabledFeatureControls() {
+	$("#pls-2, #pls-3, #pls-10").each(function() {
+		$(this).closest("li").remove();
+		$(this).remove();
+	});
+	$("a, button").filter(function() {
+		return /^(contributors ranking|download|show miniatures)$/i.test($.trim($(this).text()));
+	}).each(function() {
+		$(this).closest("li").remove();
+		$(this).remove();
+	});
+}
+removeDisabledFeatureControls();
 
 
 // Dynamically set channel name padding, according to custom mini logo proportions
