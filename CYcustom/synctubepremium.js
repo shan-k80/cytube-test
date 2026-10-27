@@ -149,13 +149,9 @@ GiphyAPIKey		= 'dc6zaTOxFJmzC';
 
 ExternalScriptURL	= '';
 
-/*
-# DicePlaylistID       | YouTube playlist ID used by the custom !dice command
-# YouTubeAPIKey        | YouTube Data API v3 key (restrict it to your channel domain)
-*/
-DicePlaylistID		= 'PUT_YOUTUBE_PLAYLIST_ID_HERE';
-
-YouTubeAPIKey		= 'PUT_YOUTUBE_DATA_API_V3_KEY_HERE';
+// URL of a public plain-text file containing one YouTube video URL per line.
+// Example: https://raw.githubusercontent.com/USERNAME/REPOSITORY/main/dice_videos.txt
+DiceVideoListURL	= 'PUT_RAW_GITHUB_URL_HERE';
 
 // ***** END OF BASIC CUSTOMIZATION ***** //
 
@@ -208,7 +204,6 @@ IGNORESERVER	= getOrDefault('SP_ignoreserver',	false);
 IGNORETHISCSS	= getOrDefault('SP_ignorethiscss',	'');
 LARGECHAT	= getOrDefault('SP_largechat',		false);
 LARGEPLAYER	= getOrDefault('SP_largeplayer',	false);
-MINIATURES	= getOrDefault('SP_miniatures',		true);
 MOTDBOTTOM	= getOrDefault('SP_motdbottom',		false);
 MSGSEPARATOR	= getOrDefault('SP_msgseparator',	'');
 MUTECHAT	= getOrDefault('SP_mutechat',		false);
@@ -754,22 +749,6 @@ function handleLogin() {
 function handleMediaChange() {
 	if ($queue.find(".queue_entry").length > 0) {
 		var uid = $(".queue_active").data("media");
-		if (['yt', 'vi', 'sc', 'gd', 'fi'].indexOf(uid.type) > -1 && uid.duration != "00:00") {
-			$("#pls-3").show();
-			var arr = {
-				'yt':	'https://www.vidpaw.com/download/',
-				'vi':	'https://www.vidpaw.com/download/?url=https://vimeo.com/',
-				'sc':	'https://www.vidpaw.com/download/?url=',
-				'gd':	'https://docs.google.com/file/d/',
-				'fi':	'',
-			}
-			var link = arr[uid.type] + '' + uid.id;
-			if (uid.type == "yt") $("#pls-3").attr('href', link)
-			else if (uid.type == "vi") $("#pls-3").attr('href', link)
-			else if (uid.type == "sc") $("#pls-3").attr('href', link)
-			else if (uid.type == "gd") $("#pls-3").attr('href', link)
-			else if (uid.type == "fi") $("#pls-3").attr('href', link);
-		} else $("#pls-3").hide();
 		var link = formatURL(uid);
 		if (LASTPLAYED.length < 1 || LASTPLAYED[LASTPLAYED.length - 1]["link"] != link) {
 			LASTPLAYED.push({"link":link, "title":uid.title});
@@ -789,7 +768,6 @@ function handleMediaChange() {
 		}
 		if (TABMODE == 1) pageTitle();
 	} else {
-		$("#pls-3").hide();
 		if (TABMODE == 1) pageTitle();
 	}
 	if (CustomTitleCaption != "") {
@@ -1042,14 +1020,6 @@ function progressBar() {
 	if (b != PREVTIME) a = b / PLAYER.mediaLength * 100;
 	$videowrapHeader.css('background-size', a + '% 100%');
 	PREVTIME = b;
-}
-
-// Rebuild playlist miniatures
-
-function rebuildMiniatures() {
-	if (!MINIATURES) return;
-	$queue.find(".miniature").remove();
-	queueMiniatures("show");
 }
 
 // Rebuild saved mentions
@@ -1950,27 +1920,6 @@ function queueButtons(mode) {
 	} else if (mode == "hide") $queue.addClass('nobuttons');
 }
 
-function queueMiniatures(mode) {
-	if (mode == "hide") $queue.find(".miniature").remove()
-	else if (mode == "show") {
-		$queue.find("li").each(function() {
-			var link = '';
-			var media = $(this).data("media");
-			if (media.type == "yt") link = 'http://img.youtube.com/vi/' + media.id + '/1.jpg'
-			else if (media.type == "dm") link = 'http://www.dailymotion.com/thumbnail/video/' + media.id;
-			if (link != "") {
-				if (USEROPTS.qbtn_idontlikechange) {
-					$(this).append('<img src="' + link + '" class="miniature" />');
-				} else {
-					$(this).find(".btn-group")
-					  .before('<img src="' + link + '" class="miniature" />');
-				}
-			}
-		});
-		scrollQueue();
-	}
-}
-
 function queueMode(mode) {
 	if (mode == "default") $queue.removeClass('numbered')
 	else if (mode == "numbered") $queue.addClass('numbered');
@@ -2255,7 +2204,7 @@ var html = '<button id="pls-btn" class="btn btn-sm btn-default dropdown-toggle" 
 	 + 'title="Playlist controls"><span class="glyphicon glyphicon-cog"></span> ▾</button>'
 	 + '<ul id="pls-menu" class="dropdown-menu noclose">'
 	 +   '<li group="1"><a id="pls-1">List of Last Media</a></li>'
-			 +   '<li class="divider" group="1"></li>'
+	 +   '<li class="divider" group="1"></li>'
 	 +   '<li group="1"><a id="pls-4" class="opt"><span class="glyphicon glyphicon-ok"></span>'
 	 +     'Numbered Playlist Items</a></li>'
 	 +   '<li group="1"><a id="pls-5" class="opt"><span class="glyphicon glyphicon-ok"></span>'
@@ -2270,8 +2219,6 @@ var html = '<button id="pls-btn" class="btn btn-sm btn-default dropdown-toggle" 
 	 +   '<li class="divider" group="2"></li>'
 	 +   '<li group="2"><a id="pls-9" class="opt"><span class="glyphicon glyphicon-ok"></span>'
 	 +     'Hide Playlist Scrollbar</a></li>'
-	 +   '<li group="2"><a id="pls-10" class="opt"><span class="glyphicon glyphicon-ok"></span>'
-	 +     'Show Miniatures</a></li>'
 	 +   '<li group="2"><a id="pls-11" class="opt"><span class="glyphicon glyphicon-ok"></span>'
 	 +     'Hide Buttons</a></li></ul>';
 $plsbtnouter = $('<div id="plsbtn-outer" class="btn-group" />').appendTo("#plcontrol").html(html);
@@ -2287,14 +2234,6 @@ if (SHOWCONTRIBS) {
 if (PLSNOSCROLL) {
 	$("#pls-9").addClass('activated');
 	queueScrollbar("hide");
-}
-if (MINIATURES) {
-	queueMiniatures("show");
-	$("#pls-10").addClass('activated');
-	var len = $queue.find("li").length;
-	if (len > 500) setTimeout(function() {rebuildMiniatures()}, 7500);
-	if (len > 1000) setTimeout(function() {rebuildMiniatures()}, 15000);
-	scrollQueue();
 }
 if (HIDEPLSBTNS) {
 	queueButtons("hide");
@@ -3846,35 +3785,6 @@ $("#pls-1").on("click", function() {
 	  });
 });
 
-$("#pls-2").on("click", function() {
-	createModal('Contributors Ranking');
-
-	var list = {};
-	$queue.find("li").each(function() {
-		var item = $(this).attr('title');
-		var user = item.split('by: ')[1];
-		user in list ? list[user]++ : list[user] = 1;
-	});
-	var list2 = [];
-	for (key in list) {
-		list2.push([key, list[key]]);
-	}
-	list2.sort(function(a, b) {return a[1] - b[1]}).reverse();
-	var html = 'Ranking of users by number of items added to current playlist.<br /><br />'
-		 + '<table id="contributors-list" class="table table-striped table-condensed">'
-		 +   '<thead><th>Rank</th><th>Username</th><th>Playlist items</th></thead>';
-	for (i in list2) {
-		html += '<tr><td>' + (i * 1 + 1) + '. </td><td>' + list2[i].join('</td><td> ') + '</td></tr>';
-	}
-	html += '</table><br />';
-	body.html(html);
-	$plsbtnouter.removeClass('open');
-});
-
-$("#pls-3").on("click", function() {
-	$plsbtnouter.removeClass('open');
-});
-
 $("#pls-4").on("click", function() {
 	PLSNUMBERS ? queueMode("default") : queueMode("numbered");
 	$(this).toggleClass('activated');
@@ -3907,13 +3817,6 @@ $("#pls-9").on("click", function() {
 	PLSNOSCROLL ?  queueScrollbar("show") : queueScrollbar("hide");
 	$(this).toggleClass('activated');
 	setOpt('SP_plsnoscroll', PLSNOSCROLL = !PLSNOSCROLL);
-});
-
-$("#pls-10").on("click", function() {
-	MINIATURES ? queueMiniatures("hide") : queueMiniatures("show");
-	$(this).toggleClass('activated');
-	setOpt('SP_miniatures', MINIATURES = !MINIATURES);
-	scrollQueue();
 });
 
 $("#pls-11").on("click", function() {
@@ -4292,7 +4195,7 @@ $("#chat-f1").on("click", function() {
 	     +        '(e.g. <i>!ask Am I stupid?</i>)</td></tr>'
 	     +      '<tr><td><code>!fortune</code></td><td>check your daily fate<br />'
 	     +      '<tr><td><code>!emote</code></td><td>post random emote</td></tr>'
-	     +      '<tr><td><code>!dice</code></td><td>add one random video from the channel\'s configured YouTube playlist</td></tr>'
+	     +      '<tr><td><code>!dice</code></td><td>add one random video from dice_videos.txt</td></tr>'
 	     +      '<tr><td><code>!roll</code></td><td>roll a 6-digit number</td></tr>'
 	     +      '<tr><td><code>!game</code></td><td>simple browser game - guess a number</td></tr>'
 	     +    '</table></div><div class="panel-heading">Info commands</div>'
@@ -5849,49 +5752,30 @@ function prepareMessage(msg) {
 			if (COMMAND) msg = CHANNEL.emotes[Math.floor(Math.random() * len)].name;
 		} else if (msg.indexOf('!dice') == 0) {
 			checkCommandsAbuse();
-			if (COMMAND) {
 			COMMAND = false;
-
 			if (!hasPermission("playlistadd")) {
 				addChatNotification('Warning! You have no permission to add links');
-			} else if (!DicePlaylistID || DicePlaylistID == 'PUT_YOUTUBE_PLAYLIST_ID_HERE'
-				|| !YouTubeAPIKey || YouTubeAPIKey == 'PUT_YOUTUBE_DATA_API_V3_KEY_HERE') {
-				addChatNotification('Dice command is not configured: set DicePlaylistID and YouTubeAPIKey in BASIC CUSTOMIZATION.');
+			} else if (!DiceVideoListURL || DiceVideoListURL == 'PUT_RAW_GITHUB_URL_HERE') {
+				addChatNotification('Dice command is not configured: set DiceVideoListURL in BASIC CUSTOMIZATION.');
 			} else {
-				// Cache playlist video IDs for this page session to avoid repeated API calls.
-				if (typeof DICE_PLAYLIST_CACHE !== "undefined" && DICE_PLAYLIST_CACHE.length > 0) {
-					var picked = DICE_PLAYLIST_CACHE[Math.floor(Math.random() * DICE_PLAYLIST_CACHE.length)];
-					socket.emit("queue", {id:picked, pos:"end", type:"yt"});
-				} else {
-					var ids = [];
-					var pageToken = '';
-					var loadDicePlaylistPage = function() {
-						var api = 'https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&maxResults=50'
-							+ '&playlistId=' + encodeURIComponent(DicePlaylistID)
-							+ '&key=' + encodeURIComponent(YouTubeAPIKey)
-							+ (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : '');
-						$.getJSON(api).done(function(data) {
-							for (var n = 0; n < data.items.length; n++) {
-								var videoId = data.items[n].contentDetails && data.items[n].contentDetails.videoId;
-								if (videoId && ids.indexOf(videoId) < 0) ids.push(videoId);
-							}
-							if (data.nextPageToken) {
-								pageToken = data.nextPageToken;
-								loadDicePlaylistPage();
-							} else if (ids.length > 0) {
-								DICE_PLAYLIST_CACHE = ids;
-								var picked = ids[Math.floor(Math.random() * ids.length)];
-								socket.emit("queue", {id:picked, pos:"end", type:"yt"});
-							} else {
-								addChatNotification('Dice command: no playable videos were found in the configured playlist.');
-							}
-						}).fail(function() {
-							addChatNotification('Dice command: unable to read the YouTube playlist. Check the playlist ID, API key, and API quota.');
-						});
-					};
-					loadDicePlaylistPage();
-				}
-			}
+				// Fetch the plain-text list on each use so edits to the GitHub file take effect immediately.
+				$.ajax({url: DiceVideoListURL, dataType: 'text', cache: false}).done(function(contents) {
+					var links = contents.split(/\r?\n/).map(function(line) { return line.trim(); })
+						.filter(function(line) { return line.length > 0 && line.charAt(0) != '#'; });
+					var valid = [];
+					for (var n = 0; n < links.length; n++) {
+						var parsed = parseMediaLink(links[n]);
+						if (parsed && parsed.id && parsed.type == 'yt') valid.push(parsed);
+					}
+					if (valid.length < 1) {
+						addChatNotification('Dice command: no valid YouTube URLs found in dice_videos.txt.');
+						return;
+					}
+					var picked = valid[Math.floor(Math.random() * valid.length)];
+					socket.emit("queue", {id:picked.id, pos:"end", type:picked.type});
+				}).fail(function() {
+					addChatNotification('Dice command: could not load dice_videos.txt. Check the raw GitHub URL and repository visibility.');
+				});
 			}
 		} else if (msg.indexOf('!roll') == 0) {
 			checkCommandsAbuse();
@@ -6595,7 +6479,6 @@ var css = '.bigtitle {\n'
 	+ '.margin-bottom-10 {margin-bottom:10px}\n'
 	+ '.margin-top-15 {margin-top:15px}\n'
 	+ '.maxwidth {width:100% !important}\n'
-	+ '.miniature {max-width:90px; max-height:68px}\n'
 	+ '.modal .channel-emote {max-width:50px !important; max-height:50px !important}\n'
 	+ '.modal .embedimg, .modal .embedvid {max-width:100px !important; max-height:100px !important}\n'
 	+ '.modal .panel-body > div:nth-child(1) .checkbox-inline, .modal .elements-inline {padding-top:0px}\n'
@@ -6671,8 +6554,6 @@ var css = '.bigtitle {\n'
 	+ '#timeleftclock {float:right; margin:auto 5px}\n'
 	+ '#plr-menu {min-width:215px}\n'
 	+ '#plr-menu .glyphicon-refresh {margin-right:5px}\n'
-	+ '#contributors-list th:nth-child(1), #contributors-list td:nth-child(1) {padding-right:15px}\n'
-	+ '#contributors-list th:nth-child(3), #contributors-list td:nth-child(3) {\n'
 	+ '  text-align:right; padding-left:50px\n'
 	+ '}\n'
 	+ '#db-well {margin-top:10px}\n'
@@ -7066,7 +6947,6 @@ socket.on("channelCSSJS", function() {
 socket.on("channelOpts", pageTitle);
 socket.on("login", handleLogin);
 socket.on("queue", function(data) {
-	rebuildMiniatures();
 	if (SHOWCONTRIBS) contributorsNames("show");
 	if ((data.item.queueby == CLIENT.name) || (!data.item.queueby && CLIENT.name == "")) {
 		var link = formatURL(data.item.media);
