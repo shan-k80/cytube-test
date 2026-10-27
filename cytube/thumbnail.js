@@ -69,7 +69,7 @@
       }
     };
     img.src = url;
- 
+
     var buttonGroup = item.querySelector(".btn-group");
     if (buttonGroup && !(window.USEROPTS && window.USEROPTS.qbtn_idontlikechange)) {
       buttonGroup.parentNode.insertBefore(img, buttonGroup);
