@@ -149,13 +149,8 @@ GiphyAPIKey		= 'dc6zaTOxFJmzC';
 
 ExternalScriptURL	= '';
 
-/*
-# DicePlaylistID       | YouTube playlist ID used by the custom !dice command
-# YouTubeAPIKey        | YouTube Data API v3 key (restrict it to your channel domain)
-*/
-DicePlaylistID		= 'PUT_YOUTUBE_PLAYLIST_ID_HERE';
-
-YouTubeAPIKey		= 'PUT_YOUTUBE_DATA_API_V3_KEY_HERE';
+// URL list used by !dice (one YouTube video URL per line).
+DiceListURL = 'https://raw.githubusercontent.com/shan-k80/cytube-test/main/cytube/dice.txt';
 
 // ***** END OF BASIC CUSTOMIZATION ***** //
 
@@ -2209,11 +2204,6 @@ var html = '<button id="pls-btn" class="btn btn-sm btn-default dropdown-toggle" 
 	 + 'title="Playlist controls"><span class="glyphicon glyphicon-cog"></span> ▾</button>'
 	 + '<ul id="pls-menu" class="dropdown-menu noclose">'
 	 +   '<li group="1"><a id="pls-1">List of Last Media</a></li>'
-			 +   '<li class="divider" group="1"></li>'
-	 +   '<li group="1"><a id="pls-4" class="opt"><span class="glyphicon glyphicon-ok"></span>'
-	 +     'Numbered Playlist Items</a></li>'
-	 +   '<li group="1"><a id="pls-5" class="opt"><span class="glyphicon glyphicon-ok"></span>'
-	 +     'Show Contributors Usernames</a></li>'
 	 +   '<li class="divider" group="1"></li>'
 	 +   '<li class="centered" group="1"><a id="pls-6"><span class="glyphicon glyphicon-chevron-down"></span>'
 	 +     '</a></li>'
@@ -2230,12 +2220,12 @@ $plsbtnouter = $('<div id="plsbtn-outer" class="btn-group" />').appendTo("#plcon
 
 // Remove legacy contributors-ranking, download, and miniature controls.
 function removeLegacyPlaylistControls() {
-	$("#pls-2, #pls-3, #pls-10").each(function() {
+	$("#pls-2, #pls-3, #pls-4, #pls-5, #pls-10").each(function() {
 		$(this).closest("li").remove();
 		$(this).remove();
 	});
 	$("#pls-menu a").filter(function() {
-		return /contributors ranking|download|show miniatures/i.test($(this).text());
+		return /contributors ranking|download|show miniatures|numbered playlist items|show contributors usernames/i.test($(this).text());
 	}).each(function() {
 		$(this).closest("li").remove();
 		$(this).remove();
@@ -5775,49 +5765,60 @@ function prepareMessage(msg) {
 		} else if (msg.indexOf('!dice') == 0) {
 			checkCommandsAbuse();
 			if (COMMAND) {
-			COMMAND = false;
+				COMMAND = false;
 
-			if (!hasPermission("playlistadd")) {
-				addChatNotification('Warning! You have no permission to add links');
-			} else if (!DicePlaylistID || DicePlaylistID == 'PUT_YOUTUBE_PLAYLIST_ID_HERE'
-				|| !YouTubeAPIKey || YouTubeAPIKey == 'PUT_YOUTUBE_DATA_API_V3_KEY_HERE') {
-				addChatNotification('Dice command is not configured: set DicePlaylistID and YouTubeAPIKey in BASIC CUSTOMIZATION.');
-			} else {
-				// Cache playlist video IDs for this page session to avoid repeated API calls.
-				if (typeof DICE_PLAYLIST_CACHE !== "undefined" && DICE_PLAYLIST_CACHE.length > 0) {
-					var picked = DICE_PLAYLIST_CACHE[Math.floor(Math.random() * DICE_PLAYLIST_CACHE.length)];
-					socket.emit("queue", {id:picked, pos:"end", type:"yt"});
+				if (!hasPermission("playlistadd")) {
+					addChatNotification('Warning! You have no permission to add links');
 				} else {
-					var ids = [];
-					var pageToken = '';
-					var loadDicePlaylistPage = function() {
-						var api = 'https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&maxResults=50'
-							+ '&playlistId=' + encodeURIComponent(DicePlaylistID)
-							+ '&key=' + encodeURIComponent(YouTubeAPIKey)
-							+ (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : '');
-						$.getJSON(api).done(function(data) {
-							for (var n = 0; n < data.items.length; n++) {
-								var videoId = data.items[n].contentDetails && data.items[n].contentDetails.videoId;
-								if (videoId && ids.indexOf(videoId) < 0) ids.push(videoId);
+					// Cache the GitHub URL list for this page session.
+					var queueRandomDiceVideo = function(lines) {
+						var ids = [];
+						for (var n = 0; n < lines.length; n++) {
+							var line = $.trim(lines[n]);
+							if (!line || line.charAt(0) === "#") continue;
+
+							try {
+								var parsedURL = new URL(line);
+								var host = parsedURL.hostname.toLowerCase();
+								var videoId = "";
+								if (host === "youtu.be") {
+									videoId = parsedURL.pathname.split("/").filter(Boolean)[0] || "";
+								} else if (host === "youtube.com" || host === "www.youtube.com" || host === "m.youtube.com") {
+									if (parsedURL.pathname === "/watch") videoId = parsedURL.searchParams.get("v") || "";
+									else {
+										var parts = parsedURL.pathname.split("/").filter(Boolean);
+										if (parts.length >= 2 && ["shorts", "embed", "live"].indexOf(parts[0]) >= 0) videoId = parts[1];
+									}
+								}
+								if (/^[A-Za-z0-9_-]{11}$/.test(videoId) && ids.indexOf(videoId) < 0) ids.push(videoId);
+							} catch (e) {
+								// Ignore malformed or non-YouTube lines.
 							}
-							if (data.nextPageToken) {
-								pageToken = data.nextPageToken;
-								loadDicePlaylistPage();
-							} else if (ids.length > 0) {
-								DICE_PLAYLIST_CACHE = ids;
-								var picked = ids[Math.floor(Math.random() * ids.length)];
-								socket.emit("queue", {id:picked, pos:"end", type:"yt"});
-							} else {
-								addChatNotification('Dice command: no playable videos were found in the configured playlist.');
-							}
-						}).fail(function() {
-							addChatNotification('Dice command: unable to read the YouTube playlist. Check the playlist ID, API key, and API quota.');
-						});
-					};
-					loadDicePlaylistPage();
+						}
+						if (!ids.length) {
+							addChatNotification('Dice command: no valid YouTube URLs were found in dice.txt.');
+							return;
+						}
+					var picked = ids[Math.floor(Math.random() * ids.length)];
+					socket.emit("queue", {id:picked, pos:"end", type:"yt"});
+				};
+
+				if (window.DICE_URL_CACHE && window.DICE_URL_CACHE.length) {
+					queueRandomDiceVideo(window.DICE_URL_CACHE);
+				} else {
+					$.ajax({
+						url: DiceListURL,
+						dataType: "text",
+						cache: true
+					}).done(function(data) {
+						window.DICE_URL_CACHE = data.split(/\r?\n/);
+						queueRandomDiceVideo(window.DICE_URL_CACHE);
+					}).fail(function() {
+						addChatNotification('Dice command: unable to load dice.txt from GitHub. Check the file URL and connection.');
+					});
 				}
 			}
-			}
+		}
 		} else if (msg.indexOf('!roll') == 0) {
 			checkCommandsAbuse();
 			if (COMMAND) {
@@ -6714,7 +6715,7 @@ var chatlineHT = $chatline.outerHeight();
 var chatbtnHT = (USEROPTS.chatbtn) ? $("#chatbtn").outerHeight() : 0;
 if (PlayerCoveringURL == "") PlayerCoveringURL = DROPBOX + '3qp3v6ychbswqvm/stop.png';
 
-var css = '#queue img, #queue .miniature {display:none !important}\n'
+var css = '#queue .miniature {display:none !important}\n'
 	+ '.autoscroll {overflow-y:auto !important}\n'
 	+ '.expanded {max-height:100000px !important}\n'
 	+ '.hidden {display:none !important}\n'
@@ -6877,12 +6878,12 @@ $("head").append('<style id="hardcss" type="text/css">' + css + '</style>');
 
 // Final cleanup after UI construction: remove only the three explicitly disabled features.
 function removeDisabledFeatureControls() {
-	$("#pls-2, #pls-3, #pls-10").each(function() {
+	$("#pls-2, #pls-3, #pls-4, #pls-5, #pls-10").each(function() {
 		$(this).closest("li").remove();
 		$(this).remove();
 	});
 	$("a, button").filter(function() {
-		return /^(contributors ranking|download|show miniatures)$/i.test($.trim($(this).text()));
+		return /^(contributors ranking|download|show miniatures|numbered playlist items|show contributors usernames)$/i.test($.trim($(this).text()));
 	}).each(function() {
 		$(this).closest("li").remove();
 		$(this).remove();
