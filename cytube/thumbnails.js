@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var STYLE_ID = "custom-playlist-thumbnails-style-v2";
+  var STYLE_ID = "custom-playlist-thumbnails-style-v3";
   var observer = null;
   var applying = false;
   var retryCount = 0;
@@ -15,23 +15,23 @@
     }
     style.textContent =
       "#queue img.miniature, #queue .miniature {" +
-      "width:70px !important; height:48px !important;" +
-      "min-width:70px !important; min-height:48px !important;" +
-      "max-width:70px !important; max-height:48px !important;" +
+      "width:40px !important; height:27px !important;" +
+      "min-width:40px !important; min-height:27px !important;" +
+      "max-width:40px !important; max-height:27px !important;" +
       "object-fit:cover !important; box-sizing:border-box !important;" +
       "}";
   }
 
   function forceImageSize(img) {
     if (!img || !img.classList || !img.classList.contains("miniature")) return;
-    img.setAttribute("width", "70");
-    img.setAttribute("height", "48");
-    img.style.setProperty("width", "70px", "important");
-    img.style.setProperty("height", "48px", "important");
-    img.style.setProperty("min-width", "70px", "important");
-    img.style.setProperty("min-height", "48px", "important");
-    img.style.setProperty("max-width", "70px", "important");
-    img.style.setProperty("max-height", "48px", "important");
+    img.setAttribute("width", "40");
+    img.setAttribute("height", "27");
+    img.style.setProperty("width", "40px", "important");
+    img.style.setProperty("height", "27px", "important");
+    img.style.setProperty("min-width", "40px", "important");
+    img.style.setProperty("min-height", "27px", "important");
+    img.style.setProperty("max-width", "40px", "important");
+    img.style.setProperty("max-height", "27px", "important");
     img.style.setProperty("object-fit", "cover", "important");
   }
 
