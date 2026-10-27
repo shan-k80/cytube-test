@@ -1,0 +1,6 @@
+.random-active .option.vote-leader {
+    background-color: rgba(255, 200, 70, 0.18);
+    border: 1px solid #e6b84c;
+    border-radius: 4px;
+    box-shadow: 0 0 6px rgba(255, 200, 70, 0.25);
+}
