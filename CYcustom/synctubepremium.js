@@ -208,7 +208,6 @@ IGNORESERVER	= getOrDefault('SP_ignoreserver',	false);
 IGNORETHISCSS	= getOrDefault('SP_ignorethiscss',	'');
 LARGECHAT	= getOrDefault('SP_largechat',		false);
 LARGEPLAYER	= getOrDefault('SP_largeplayer',	false);
-MINIATURES	= getOrDefault('SP_miniatures',		true);
 MOTDBOTTOM	= getOrDefault('SP_motdbottom',		false);
 MSGSEPARATOR	= getOrDefault('SP_msgseparator',	'');
 MUTECHAT	= getOrDefault('SP_mutechat',		false);
@@ -754,22 +753,6 @@ function handleLogin() {
 function handleMediaChange() {
 	if ($queue.find(".queue_entry").length > 0) {
 		var uid = $(".queue_active").data("media");
-		if (['yt', 'vi', 'sc', 'gd', 'fi'].indexOf(uid.type) > -1 && uid.duration != "00:00") {
-			$("#pls-3").show();
-			var arr = {
-				'yt':	'https://www.vidpaw.com/download/',
-				'vi':	'https://www.vidpaw.com/download/?url=https://vimeo.com/',
-				'sc':	'https://www.vidpaw.com/download/?url=',
-				'gd':	'https://docs.google.com/file/d/',
-				'fi':	'',
-			}
-			var link = arr[uid.type] + '' + uid.id;
-			if (uid.type == "yt") $("#pls-3").attr('href', link)
-			else if (uid.type == "vi") $("#pls-3").attr('href', link)
-			else if (uid.type == "sc") $("#pls-3").attr('href', link)
-			else if (uid.type == "gd") $("#pls-3").attr('href', link)
-			else if (uid.type == "fi") $("#pls-3").attr('href', link);
-		} else $("#pls-3").hide();
 		var link = formatURL(uid);
 		if (LASTPLAYED.length < 1 || LASTPLAYED[LASTPLAYED.length - 1]["link"] != link) {
 			LASTPLAYED.push({"link":link, "title":uid.title});
@@ -789,7 +772,6 @@ function handleMediaChange() {
 		}
 		if (TABMODE == 1) pageTitle();
 	} else {
-		$("#pls-3").hide();
 		if (TABMODE == 1) pageTitle();
 	}
 	if (CustomTitleCaption != "") {
@@ -1044,13 +1026,6 @@ function progressBar() {
 	PREVTIME = b;
 }
 
-// Rebuild playlist miniatures
-
-function rebuildMiniatures() {
-	if (!MINIATURES) return;
-	$queue.find(".miniature").remove();
-	queueMiniatures("show");
-}
 
 // Rebuild saved mentions
 
@@ -1950,27 +1925,6 @@ function queueButtons(mode) {
 	} else if (mode == "hide") $queue.addClass('nobuttons');
 }
 
-function queueMiniatures(mode) {
-	if (mode == "hide") $queue.find(".miniature").remove()
-	else if (mode == "show") {
-		$queue.find("li").each(function() {
-			var link = '';
-			var media = $(this).data("media");
-			if (media.type == "yt") link = 'http://img.youtube.com/vi/' + media.id + '/1.jpg'
-			else if (media.type == "dm") link = 'http://www.dailymotion.com/thumbnail/video/' + media.id;
-			if (link != "") {
-				if (USEROPTS.qbtn_idontlikechange) {
-					$(this).append('<img src="' + link + '" class="miniature" />');
-				} else {
-					$(this).find(".btn-group")
-					  .before('<img src="' + link + '" class="miniature" />');
-				}
-			}
-		});
-		scrollQueue();
-	}
-}
-
 function queueMode(mode) {
 	if (mode == "default") $queue.removeClass('numbered')
 	else if (mode == "numbered") $queue.addClass('numbered');
@@ -2270,11 +2224,15 @@ var html = '<button id="pls-btn" class="btn btn-sm btn-default dropdown-toggle" 
 	 +   '<li class="divider" group="2"></li>'
 	 +   '<li group="2"><a id="pls-9" class="opt"><span class="glyphicon glyphicon-ok"></span>'
 	 +     'Hide Playlist Scrollbar</a></li>'
-	 +   '<li group="2"><a id="pls-10" class="opt"><span class="glyphicon glyphicon-ok"></span>'
-	 +     'Show Miniatures</a></li>'
 	 +   '<li group="2"><a id="pls-11" class="opt"><span class="glyphicon glyphicon-ok"></span>'
 	 +     'Hide Buttons</a></li></ul>';
 $plsbtnouter = $('<div id="plsbtn-outer" class="btn-group" />').appendTo("#plcontrol").html(html);
+
+// Remove legacy contributors-ranking and download controls.
+$("#pls-2, #pls-3").each(function() {
+	$(this).closest("li").remove();
+	$(this).remove();
+});
 
 if (PLSNUMBERS) {
 	$("#pls-4").addClass('activated');
@@ -2287,14 +2245,6 @@ if (SHOWCONTRIBS) {
 if (PLSNOSCROLL) {
 	$("#pls-9").addClass('activated');
 	queueScrollbar("hide");
-}
-if (MINIATURES) {
-	queueMiniatures("show");
-	$("#pls-10").addClass('activated');
-	var len = $queue.find("li").length;
-	if (len > 500) setTimeout(function() {rebuildMiniatures()}, 7500);
-	if (len > 1000) setTimeout(function() {rebuildMiniatures()}, 15000);
-	scrollQueue();
 }
 if (HIDEPLSBTNS) {
 	queueButtons("hide");
@@ -3846,34 +3796,6 @@ $("#pls-1").on("click", function() {
 	  });
 });
 
-$("#pls-2").on("click", function() {
-	createModal('Contributors Ranking');
-
-	var list = {};
-	$queue.find("li").each(function() {
-		var item = $(this).attr('title');
-		var user = item.split('by: ')[1];
-		user in list ? list[user]++ : list[user] = 1;
-	});
-	var list2 = [];
-	for (key in list) {
-		list2.push([key, list[key]]);
-	}
-	list2.sort(function(a, b) {return a[1] - b[1]}).reverse();
-	var html = 'Ranking of users by number of items added to current playlist.<br /><br />'
-		 + '<table id="contributors-list" class="table table-striped table-condensed">'
-		 +   '<thead><th>Rank</th><th>Username</th><th>Playlist items</th></thead>';
-	for (i in list2) {
-		html += '<tr><td>' + (i * 1 + 1) + '. </td><td>' + list2[i].join('</td><td> ') + '</td></tr>';
-	}
-	html += '</table><br />';
-	body.html(html);
-	$plsbtnouter.removeClass('open');
-});
-
-$("#pls-3").on("click", function() {
-	$plsbtnouter.removeClass('open');
-});
 
 $("#pls-4").on("click", function() {
 	PLSNUMBERS ? queueMode("default") : queueMode("numbered");
@@ -3909,12 +3831,6 @@ $("#pls-9").on("click", function() {
 	setOpt('SP_plsnoscroll', PLSNOSCROLL = !PLSNOSCROLL);
 });
 
-$("#pls-10").on("click", function() {
-	MINIATURES ? queueMiniatures("hide") : queueMiniatures("show");
-	$(this).toggleClass('activated');
-	setOpt('SP_miniatures', MINIATURES = !MINIATURES);
-	scrollQueue();
-});
 
 $("#pls-11").on("click", function() {
 	if (HIDEPLSBTNS) {
@@ -6595,7 +6511,6 @@ var css = '.bigtitle {\n'
 	+ '.margin-bottom-10 {margin-bottom:10px}\n'
 	+ '.margin-top-15 {margin-top:15px}\n'
 	+ '.maxwidth {width:100% !important}\n'
-	+ '.miniature {max-width:90px; max-height:68px}\n'
 	+ '.modal .channel-emote {max-width:50px !important; max-height:50px !important}\n'
 	+ '.modal .embedimg, .modal .embedvid {max-width:100px !important; max-height:100px !important}\n'
 	+ '.modal .panel-body > div:nth-child(1) .checkbox-inline, .modal .elements-inline {padding-top:0px}\n'
@@ -7066,7 +6981,6 @@ socket.on("channelCSSJS", function() {
 socket.on("channelOpts", pageTitle);
 socket.on("login", handleLogin);
 socket.on("queue", function(data) {
-	rebuildMiniatures();
 	if (SHOWCONTRIBS) contributorsNames("show");
 	if ((data.item.queueby == CLIENT.name) || (!data.item.queueby && CLIENT.name == "")) {
 		var link = formatURL(data.item.media);
