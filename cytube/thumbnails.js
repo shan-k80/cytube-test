@@ -1,9 +1,9 @@
 (function () {
   "use strict";
 
-  var STYLE_ID = "custom-playlist-thumbnails-style-v3";
+  var STYLE_ID = "custom-playlist-thumbnails-style-v4";
   var observer = null;
-  var applying = false;
+  var initialized = false;
   var retryCount = 0;
 
   function addStyles() {
@@ -15,10 +15,10 @@
     }
     style.textContent =
       "#queue img.miniature, #queue .miniature {" +
-      "width:40px !important; height:27px !important;" +
-      "min-width:40px !important; min-height:27px !important;" +
-      "max-width:40px !important; max-height:27px !important;" +
-      "object-fit:cover !important; box-sizing:border-box !important;" +
+      "width:40px !important;height:27px !important;" +
+      "min-width:40px !important;min-height:27px !important;" +
+      "max-width:40px !important;max-height:27px !important;" +
+      "object-fit:cover !important;box-sizing:border-box !important;" +
       "}";
   }
 
@@ -42,35 +42,24 @@
 
     if (media && typeof media === "object") {
       mediaType = String(media.type || media.provider || "").toLowerCase();
-      if (media.id !== undefined && media.id !== null) candidates.push(String(media.id));
-      if (media.url) candidates.push(String(media.url));
-      if (media.link) candidates.push(String(media.link));
-      if (media.src) candidates.push(String(media.src));
+      [media.id, media.url, media.link, media.src].forEach(function (value) {
+        if (value !== undefined && value !== null) candidates.push(String(value));
+      });
     }
 
-    if (item) {
+    [item].concat(Array.prototype.slice.call(item.querySelectorAll("a[href], [data-url], [data-link]"))).forEach(function (el) {
       ["href", "data-url", "data-link", "title"].forEach(function (attr) {
-        var value = item.getAttribute && item.getAttribute(attr);
+        var value = el.getAttribute && el.getAttribute(attr);
         if (value) candidates.push(value);
       });
-      Array.prototype.forEach.call(item.querySelectorAll("a[href], [data-url], [data-link]"), function (el) {
-        ["href", "data-url", "data-link", "title"].forEach(function (attr) {
-          var value = el.getAttribute(attr);
-          if (value) candidates.push(value);
-        });
-      });
-      candidates.push(item.textContent || "");
-      candidates.push(item.innerHTML || "");
-    }
+    });
+    candidates.push(item.textContent || "");
 
     for (var i = 0; i < candidates.length; i++) {
       var value = String(candidates[i]);
       var match = value.match(/(?:watch\/|watch\?|nico\.ms\/|nicovideo\.jp\/watch\/|^)((?:sm|nm|so)\d+)/i);
       if (match) return match[1].toLowerCase();
-      // Some CyTube media records keep the numeric ID separately from the URL.
-      if (/nico|nicovideo|^nv$|^ni$/.test(mediaType) && /^\d+$/.test(value)) {
-        return "sm" + value;
-      }
+      if (/nico|nicovideo|^nv$|^ni$/.test(mediaType) && /^\d+$/.test(value)) return "sm" + value;
     }
     return null;
   }
@@ -87,8 +76,8 @@
 
     var sources = [
       "https://tn.smilevideo.jp/smile?i=" + encodeURIComponent(numericId),
-      "https://nicovideo.cdn.nimg.jp/thumbnails/" + encodeURIComponent(numericId) + "/" + encodeURIComponent(numericId),
-      "https://tn-skr3.smilevideo.jp/smile?i=" + encodeURIComponent(numericId)
+      "https://tn-skr3.smilevideo.jp/smile?i=" + encodeURIComponent(numericId),
+      "https://nicovideo.cdn.nimg.jp/thumbnails/" + encodeURIComponent(numericId) + "/" + encodeURIComponent(numericId)
     ];
     var sourceIndex = 0;
     img.onerror = function () {
@@ -99,7 +88,7 @@
     img.src = sources[sourceIndex];
 
     var buttonGroup = item.querySelector(".btn-group");
-    if (buttonGroup && !(window.USEROPTS && window.USEROPTS.qbtn_idontlikechange)) {
+    if (buttonGroup && buttonGroup.parentNode && !(window.USEROPTS && window.USEROPTS.qbtn_idontlikechange)) {
       buttonGroup.parentNode.insertBefore(img, buttonGroup);
     } else {
       item.appendChild(img);
@@ -113,65 +102,73 @@
 
     Array.prototype.forEach.call(queue.querySelectorAll("li.queue_entry, li"), function (item) {
       if (item.querySelector("img.custom-niconico-miniature")) return;
-
       var id = findNiconicoId(item);
       if (!id) return;
-
-      // Do not duplicate thumbnails already made by Synchtube Premium.
+      // Do not add a second image if Premium already supplied one.
       if (item.querySelector("img.miniature")) return;
       insertNiconicoThumbnail(item, id);
     });
   }
 
-  function applyThumbnails() {
-    if (applying) return;
-    if (typeof queueMiniatures !== "function" || typeof $queue === "undefined" || !$queue.length) return;
+  function hideThumbnailToggle() {
+    document.querySelectorAll("#pls-10").forEach(function (el) {
+      var menuItem = el.closest("li");
+      if (menuItem) menuItem.style.display = "none";
+      else el.style.display = "none";
+    });
+  }
 
-    applying = true;
+  function applyExistingImageSizes() {
+    var queue = document.querySelector("#queue");
+    if (queue) Array.prototype.forEach.call(queue.querySelectorAll("img.miniature"), forceImageSize);
+  }
+
+  function initializePremiumThumbnails() {
+    if (initialized) return true;
+    if (typeof queueMiniatures !== "function" || typeof $queue === "undefined" || !$queue.length) return false;
+
     try {
       if (typeof MINIATURES !== "undefined") MINIATURES = true;
-      if (observer) observer.disconnect();
-
-      // Rebuild the standard YouTube/Dailymotion thumbnails, then add best-effort Nico support.
-      $queue.find("img.miniature").remove();
+      // Run the Premium thumbnail builder only once; repeatedly rebuilding it made images flash/disappear.
       queueMiniatures("show");
-      addNiconicoThumbnails();
-
-      // Apply the dimensions directly as well as through CSS, overriding existing styles.
-      var queue = document.querySelector("#queue");
-      if (queue) Array.prototype.forEach.call(queue.querySelectorAll("img.miniature"), forceImageSize);
-
-      document.querySelectorAll("#pls-10").forEach(function (el) {
-        var menuItem = el.closest("li");
-        if (menuItem) menuItem.style.display = "none";
-        else el.style.display = "none";
-      });
+      initialized = true;
+      return true;
     } catch (e) {
-      // If Premium is still initializing, the retry loop will try again.
-    } finally {
-      var queueAfter = document.querySelector("#queue");
-      if (observer && queueAfter) observer.observe(queueAfter, { childList: true, subtree: true });
-      applying = false;
+      return false;
     }
+  }
+
+  function processQueue() {
+    addStyles();
+    initializePremiumThumbnails();
+    addNiconicoThumbnails();
+    applyExistingImageSizes();
+    hideThumbnailToggle();
   }
 
   function start() {
     addStyles();
+    processQueue();
+
     var queue = document.querySelector("#queue");
     if (queue && !observer && window.MutationObserver) {
       observer = new MutationObserver(function (mutations) {
-        var queueChanged = mutations.some(function (mutation) {
-          return Array.prototype.some.call(mutation.addedNodes, function (node) {
-            return node.nodeType === 1 && !(node.matches && node.matches("img.miniature"));
-          }) || Array.prototype.some.call(mutation.removedNodes, function (node) {
-            return node.nodeType === 1 && !(node.matches && node.matches("img.miniature"));
+        var queueEntriesChanged = mutations.some(function (mutation) {
+          var nodes = Array.prototype.slice.call(mutation.addedNodes);
+          return nodes.some(function (node) {
+            if (node.nodeType !== 1) return false;
+            return (node.matches && node.matches("li.queue_entry, li")) ||
+              (node.querySelector && !!node.querySelector("li.queue_entry, li"));
           });
         });
-        if (queueChanged) applyThumbnails();
+        if (queueEntriesChanged) {
+          // Do not rebuild all thumbnails: only process newly added playlist entries.
+          addNiconicoThumbnails();
+          applyExistingImageSizes();
+        }
       });
       observer.observe(queue, { childList: true, subtree: true });
     }
-    applyThumbnails();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
@@ -180,7 +177,12 @@
   var retry = window.setInterval(function () {
     retryCount++;
     addStyles();
-    applyThumbnails();
+    if (!initialized) processQueue();
+    else {
+      addNiconicoThumbnails();
+      applyExistingImageSizes();
+      hideThumbnailToggle();
+    }
     if (retryCount >= 60) window.clearInterval(retry);
   }, 500);
 })();
