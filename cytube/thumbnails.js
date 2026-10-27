@@ -1,4 +1,4 @@
-(function () {
+function () {
   "use strict";
 
   var STYLE_ID = "custom-playlist-thumbnails-style";
@@ -12,13 +12,87 @@
     style.id = STYLE_ID;
     style.textContent =
       "#queue img.miniature {" +
-      "width: 90px !important;" +
-      "height: 68px !important;" +
-      "max-width: 90px !important;" +
-      "max-height: 68px !important;" +
+      "width: 70px !important;" +
+      "height: 48px !important;" +
+      "max-width: 70px !important;" +
+      "max-height: 48px !important;" +
       "object-fit: cover;" +
       "}";
     document.head.appendChild(style);
+  }
+
+  function getNiconicoId(item) {
+    var media = window.jQuery ? window.jQuery(item).data("media") : null;
+    var candidates = [];
+
+    if (media) {
+      if (media.id) {
+        var mediaId = String(media.id);
+        var mediaType = String(media.type || "").toLowerCase();
+        if (/nico|nicovideo|^nv$|^ni$/.test(mediaType) && /^\d+$/.test(mediaId)) {
+          return "sm" + mediaId;
+        }
+        candidates.push(mediaId);
+      }
+      if (media.url) candidates.push(String(media.url));
+      if (media.link) candidates.push(String(media.link));
+    }
+
+    if (item) {
+      Array.prototype.forEach.call(item.querySelectorAll("a[href]"), function (a) {
+        candidates.push(a.href);
+      });
+      candidates.push(item.textContent || "");
+    }
+
+    for (var i = 0; i < candidates.length; i++) {
+      var value = candidates[i];
+      var match = value.match(/(?:watch\/|watch\?|nico\.ms\/)?((?:sm|nm|so)\d+)/i);
+      if (match && (/nicovideo\.jp|nico\.ms|^(?:sm|nm|so)\d+$/i.test(value) || /(?:sm|nm|so)\d+/i.test(value))) {
+        return match[1];
+      }
+    }
+    return null;
+  }
+
+  function addNiconicoThumbnails() {
+    var queue = document.querySelector("#queue");
+    if (!queue) return;
+
+    Array.prototype.forEach.call(queue.querySelectorAll("li"), function (item) {
+      if (item.querySelector("img.miniature")) return;
+
+      var id = getNiconicoId(item);
+      if (!id) return;
+
+      // This legacy thumbnail endpoint redirects to Niconico's current thumbnail
+      // when available. Some videos may not resolve; this is best-effort support.
+      var numericId = id.replace(/^(?:sm|nm|so)/i, "");
+      if (!/^\d+$/.test(numericId)) return;
+
+      var img = document.createElement("img");
+      img.className = "miniature custom-niconico-miniature";
+      img.alt = "";
+      img.width = 70;
+      img.height = 48;
+      img.src = "https://tn.smilevideo.jp/smile?i=" + encodeURIComponent(numericId);
+      img.onerror = function () {
+        if (img.dataset.fallbackTried) {
+          img.style.display = "none";
+          return;
+        }
+        img.dataset.fallbackTried = "1";
+        img.src = "https://nicovideo.cdn.nimg.jp/thumbnails/" +
+          encodeURIComponent(numericId) + "/" + encodeURIComponent(numericId);
+      };
+
+      var buttonGroup = item.querySelector(".btn-group");
+      if (buttonGroup && !(window.USEROPTS && USEROPTS.qbtn_idontlikechange)) {
+        buttonGroup.parentNode.insertBefore(img, buttonGroup);
+      } else {
+        item.appendChild(img);
+      }
+    });
   }
 
   function applyThumbnails() {
@@ -40,6 +114,7 @@
       // Remove existing thumbnails first to prevent duplicates.
       $queue.find("img.miniature").remove();
       queueMiniatures("show");
+      addNiconicoThumbnails();
 
       // Hide the thumbnail toggle so it cannot be switched off from the menu.
       document.querySelectorAll("#pls-10").forEach(function (el) {
