@@ -149,6 +149,14 @@ GiphyAPIKey		= 'dc6zaTOxFJmzC';
 
 ExternalScriptURL	= '';
 
+/*
+# DicePlaylistID       | YouTube playlist ID used by the custom !dice command
+# YouTubeAPIKey        | YouTube Data API v3 key (restrict it to your channel domain)
+*/
+DicePlaylistID		= 'PUT_YOUTUBE_PLAYLIST_ID_HERE';
+
+YouTubeAPIKey		= 'PUT_YOUTUBE_DATA_API_V3_KEY_HERE';
+
 // ***** END OF BASIC CUSTOMIZATION ***** //
 
 
@@ -200,7 +208,7 @@ IGNORESERVER	= getOrDefault('SP_ignoreserver',	false);
 IGNORETHISCSS	= getOrDefault('SP_ignorethiscss',	'');
 LARGECHAT	= getOrDefault('SP_largechat',		false);
 LARGEPLAYER	= getOrDefault('SP_largeplayer',	false);
-MINIATURES	= getOrDefault('SP_miniatures',		false);
+MINIATURES	= getOrDefault('SP_miniatures',		true);
 MOTDBOTTOM	= getOrDefault('SP_motdbottom',		false);
 MSGSEPARATOR	= getOrDefault('SP_msgseparator',	'');
 MUTECHAT	= getOrDefault('SP_mutechat',		false);
@@ -208,12 +216,12 @@ NOAUTOSCROLL	= getOrDefault('SP_noautoscroll',	false);
 PLAYERTEXT	= getOrDefault('SP_playertext',		false);
 PLAYWELCOME	= getOrDefault('SP_playwelcome',	true);
 PLSNOSCROLL	= getOrDefault('SP_plsnoscroll',	false);
-PLSNUMBERS	= getOrDefault('SP_plsnumbers',		false);
+PLSNUMBERS	= getOrDefault('SP_plsnumbers',		true);
 PROGRESSBAR	= getOrDefault('SP_progressbar',	true);
 RADIOMODE	= getOrDefault('SP_radiomode',		false);
 SAVEMENTIONS	= getOrDefault('SP_savementions',	true);
 SCROLLNAVBAR	= getOrDefault('SP_scrollnavbar',	false);
-SHOWCONTRIBS	= getOrDefault('SP_showcontribs',	false);
+SHOWCONTRIBS	= getOrDefault('SP_showcontribs',	true);
 SHOWIMAGES	= getOrDefault('SP_showimages',		false);
 SHOWMASCOT	= getOrDefault('SP_showmascot',		false);
 SHOWOEKAKI	= getOrDefault('SP_showoekaki',		false);
@@ -2247,9 +2255,7 @@ var html = '<button id="pls-btn" class="btn btn-sm btn-default dropdown-toggle" 
 	 + 'title="Playlist controls"><span class="glyphicon glyphicon-cog"></span> ▾</button>'
 	 + '<ul id="pls-menu" class="dropdown-menu noclose">'
 	 +   '<li group="1"><a id="pls-1">List of Last Media</a></li>'
-	 +   '<li group="1"><a id="pls-2">Contributors Ranking</a></li>'
-	 +   '<li group="1"><a id="pls-3" target="_blank">Download Current Item</a></li>'
-	 +   '<li class="divider" group="1"></li>'
+			 +   '<li class="divider" group="1"></li>'
 	 +   '<li group="1"><a id="pls-4" class="opt"><span class="glyphicon glyphicon-ok"></span>'
 	 +     'Numbered Playlist Items</a></li>'
 	 +   '<li group="1"><a id="pls-5" class="opt"><span class="glyphicon glyphicon-ok"></span>'
@@ -4286,7 +4292,7 @@ $("#chat-f1").on("click", function() {
 	     +        '(e.g. <i>!ask Am I stupid?</i>)</td></tr>'
 	     +      '<tr><td><code>!fortune</code></td><td>check your daily fate<br />'
 	     +      '<tr><td><code>!emote</code></td><td>post random emote</td></tr>'
-	     +      '<tr><td><code>!dice</code></td><td>roll a dice</td></tr>'
+	     +      '<tr><td><code>!dice</code></td><td>add one random video from the channel\'s configured YouTube playlist</td></tr>'
 	     +      '<tr><td><code>!roll</code></td><td>roll a 6-digit number</td></tr>'
 	     +      '<tr><td><code>!game</code></td><td>simple browser game - guess a number</td></tr>'
 	     +    '</table></div><div class="panel-heading">Info commands</div>'
@@ -4380,7 +4386,6 @@ $("#chat-f1").on("click", function() {
 		 +    '</table></div><div class="panel-heading">Playlist commands</div>'
 		 +    '<div class="panel-body"><table class="commands-tbl">'
 		 +      '<tr><td><code>/last</code></td><td>open "Last Played" modal window</td></tr>'
-		 +      '<tr><td><code>/save</code></td><td>download current item (if available)</td></tr>'
 		 +      '<tr><td><code>/fav</code></td><td>add current item to your Premium favourites</td></tr>'
 		 +    '</table></div><div class="panel-heading">Account commands</div>'
 		 +    '<div class="panel-body"><table class="commands-tbl">'
@@ -5844,7 +5849,50 @@ function prepareMessage(msg) {
 			if (COMMAND) msg = CHANNEL.emotes[Math.floor(Math.random() * len)].name;
 		} else if (msg.indexOf('!dice') == 0) {
 			checkCommandsAbuse();
-			if (COMMAND) msg = Math.floor(Math.random() * 6) + 1;
+			if (COMMAND) {
+			COMMAND = false;
+
+			if (!hasPermission("playlistadd")) {
+				addChatNotification('Warning! You have no permission to add links');
+			} else if (!DicePlaylistID || DicePlaylistID == 'PUT_YOUTUBE_PLAYLIST_ID_HERE'
+				|| !YouTubeAPIKey || YouTubeAPIKey == 'PUT_YOUTUBE_DATA_API_V3_KEY_HERE') {
+				addChatNotification('Dice command is not configured: set DicePlaylistID and YouTubeAPIKey in BASIC CUSTOMIZATION.');
+			} else {
+				// Cache playlist video IDs for this page session to avoid repeated API calls.
+				if (typeof DICE_PLAYLIST_CACHE !== "undefined" && DICE_PLAYLIST_CACHE.length > 0) {
+					var picked = DICE_PLAYLIST_CACHE[Math.floor(Math.random() * DICE_PLAYLIST_CACHE.length)];
+					socket.emit("queue", {id:picked, pos:"end", type:"yt"});
+				} else {
+					var ids = [];
+					var pageToken = '';
+					var loadDicePlaylistPage = function() {
+						var api = 'https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&maxResults=50'
+							+ '&playlistId=' + encodeURIComponent(DicePlaylistID)
+							+ '&key=' + encodeURIComponent(YouTubeAPIKey)
+							+ (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : '');
+						$.getJSON(api).done(function(data) {
+							for (var n = 0; n < data.items.length; n++) {
+								var videoId = data.items[n].contentDetails && data.items[n].contentDetails.videoId;
+								if (videoId && ids.indexOf(videoId) < 0) ids.push(videoId);
+							}
+							if (data.nextPageToken) {
+								pageToken = data.nextPageToken;
+								loadDicePlaylistPage();
+							} else if (ids.length > 0) {
+								DICE_PLAYLIST_CACHE = ids;
+								var picked = ids[Math.floor(Math.random() * ids.length)];
+								socket.emit("queue", {id:picked, pos:"end", type:"yt"});
+							} else {
+								addChatNotification('Dice command: no playable videos were found in the configured playlist.');
+							}
+						}).fail(function() {
+							addChatNotification('Dice command: unable to read the YouTube playlist. Check the playlist ID, API key, and API quota.');
+						});
+					};
+					loadDicePlaylistPage();
+				}
+			}
+			}
 		} else if (msg.indexOf('!roll') == 0) {
 			checkCommandsAbuse();
 			if (COMMAND) {
@@ -6065,11 +6113,7 @@ function sendMessage() {
 			cl = false;
 		}
 	} else if (msg == "/last") document.getElementById("pls-1").click()
-	else if (msg == "/save") {
-		if ($("#pls-3").css('display') == "none") {
-			addChatNotification('Warning! This item has no downloadable link');
-		} else document.getElementById("pls-3").click();
-	} else if (msg == "/fav") {
+	else if (msg == "/fav") {
 		if (NOPLAYER) addChatNotification('Warning! Unavailable command - player was removed')
 		else {
 			if (!$("#favs-btn").hasClass('btn-success')) {
@@ -6551,7 +6595,7 @@ var css = '.bigtitle {\n'
 	+ '.margin-bottom-10 {margin-bottom:10px}\n'
 	+ '.margin-top-15 {margin-top:15px}\n'
 	+ '.maxwidth {width:100% !important}\n'
-	+ '.miniature {max-width:120px; max-height:90px}\n'
+	+ '.miniature {max-width:90px; max-height:68px}\n'
 	+ '.modal .channel-emote {max-width:50px !important; max-height:50px !important}\n'
 	+ '.modal .embedimg, .modal .embedvid {max-width:100px !important; max-height:100px !important}\n'
 	+ '.modal .panel-body > div:nth-child(1) .checkbox-inline, .modal .elements-inline {padding-top:0px}\n'
