@@ -2207,11 +2207,6 @@ var html = '<button id="pls-btn" class="btn btn-sm btn-default dropdown-toggle" 
 	 + 'title="Playlist controls"><span class="glyphicon glyphicon-cog"></span> ▾</button>'
 	 + '<ul id="pls-menu" class="dropdown-menu noclose">'
 	 +   '<li group="1"><a id="pls-1">List of Last Media</a></li>'
-			 +   '<li class="divider" group="1"></li>'
-	 +   '<li group="1"><a id="pls-4" class="opt"><span class="glyphicon glyphicon-ok"></span>'
-	 +     'Numbered Playlist Items</a></li>'
-	 +   '<li group="1"><a id="pls-5" class="opt"><span class="glyphicon glyphicon-ok"></span>'
-	 +     'Show Contributors Usernames</a></li>'
 	 +   '<li class="divider" group="1"></li>'
 	 +   '<li class="centered" group="1"><a id="pls-6"><span class="glyphicon glyphicon-chevron-down"></span>'
 	 +     '</a></li>'
@@ -2228,12 +2223,12 @@ $plsbtnouter = $('<div id="plsbtn-outer" class="btn-group" />').appendTo("#plcon
 
 // Remove legacy contributors-ranking, download, and miniature controls.
 function removeLegacyPlaylistControls() {
-	$("#pls-2, #pls-3, #pls-10").each(function() {
+	$("#pls-2, #pls-3, #pls-4, #pls-5, #pls-10").each(function() {
 		$(this).closest("li").remove();
 		$(this).remove();
 	});
 	$("#pls-menu a").filter(function() {
-		return /contributors ranking|download|show miniatures/i.test($(this).text());
+		return /contributors ranking|download|show miniatures|numbered playlist items|show contributors usernames/i.test($(this).text());
 	}).each(function() {
 		$(this).closest("li").remove();
 		$(this).remove();
@@ -6696,7 +6691,7 @@ var chatlineHT = $chatline.outerHeight();
 var chatbtnHT = (USEROPTS.chatbtn) ? $("#chatbtn").outerHeight() : 0;
 if (PlayerCoveringURL == "") PlayerCoveringURL = DROPBOX + '3qp3v6ychbswqvm/stop.png';
 
-var css = '#queue img, #queue .miniature {display:none !important}\n'
+var css = '#queue .miniature {display:none !important}\n'
 	+ '.autoscroll {overflow-y:auto !important}\n'
 	+ '.expanded {max-height:100000px !important}\n'
 	+ '.hidden {display:none !important}\n'
@@ -6859,12 +6854,12 @@ $("head").append('<style id="hardcss" type="text/css">' + css + '</style>');
 
 // Final cleanup after UI construction: remove only the three explicitly disabled features.
 function removeDisabledFeatureControls() {
-	$("#pls-2, #pls-3, #pls-10").each(function() {
+	$("#pls-2, #pls-3, #pls-4, #pls-5, #pls-10").each(function() {
 		$(this).closest("li").remove();
 		$(this).remove();
 	});
 	$("a, button").filter(function() {
-		return /^(contributors ranking|download|show miniatures)$/i.test($.trim($(this).text()));
+		return /^(contributors ranking|download|show miniatures|numbered playlist items|show contributors usernames)$/i.test($.trim($(this).text()));
 	}).each(function() {
 		$(this).closest("li").remove();
 		$(this).remove();
