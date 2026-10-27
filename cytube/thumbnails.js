@@ -1,180 +1,186 @@
 (function () {
   "use strict";
 
-  var STYLE_ID = "custom-playlist-thumbnails-style";
+  var STYLE_ID = "custom-playlist-thumbnails-style-v2";
   var observer = null;
   var applying = false;
+  var retryCount = 0;
 
   function addStyles() {
-    if (document.getElementById(STYLE_ID)) return;
-
-    var style = document.createElement("style");
-    style.id = STYLE_ID;
+    var style = document.getElementById(STYLE_ID);
+    if (!style) {
+      style = document.createElement("style");
+      style.id = STYLE_ID;
+      (document.head || document.documentElement).appendChild(style);
+    }
     style.textContent =
-      "#queue img.miniature {" +
-      "width: 70px !important;" +
-      "height: 48px !important;" +
-      "max-width: 70px !important;" +
-      "max-height: 48px !important;" +
-      "object-fit: cover;" +
+      "#queue img.miniature, #queue .miniature {" +
+      "width:70px !important; height:48px !important;" +
+      "min-width:70px !important; min-height:48px !important;" +
+      "max-width:70px !important; max-height:48px !important;" +
+      "object-fit:cover !important; box-sizing:border-box !important;" +
       "}";
-    document.head.appendChild(style);
   }
 
-  function getNiconicoId(item) {
+  function forceImageSize(img) {
+    if (!img || !img.classList || !img.classList.contains("miniature")) return;
+    img.setAttribute("width", "70");
+    img.setAttribute("height", "48");
+    img.style.setProperty("width", "70px", "important");
+    img.style.setProperty("height", "48px", "important");
+    img.style.setProperty("min-width", "70px", "important");
+    img.style.setProperty("min-height", "48px", "important");
+    img.style.setProperty("max-width", "70px", "important");
+    img.style.setProperty("max-height", "48px", "important");
+    img.style.setProperty("object-fit", "cover", "important");
+  }
+
+  function findNiconicoId(item) {
     var media = window.jQuery ? window.jQuery(item).data("media") : null;
     var candidates = [];
+    var mediaType = "";
 
-    if (media) {
-      if (media.id) {
-        var mediaId = String(media.id);
-        var mediaType = String(media.type || "").toLowerCase();
-        if (/nico|nicovideo|^nv$|^ni$/.test(mediaType) && /^\d+$/.test(mediaId)) {
-          return "sm" + mediaId;
-        }
-        candidates.push(mediaId);
-      }
+    if (media && typeof media === "object") {
+      mediaType = String(media.type || media.provider || "").toLowerCase();
+      if (media.id !== undefined && media.id !== null) candidates.push(String(media.id));
       if (media.url) candidates.push(String(media.url));
       if (media.link) candidates.push(String(media.link));
+      if (media.src) candidates.push(String(media.src));
     }
 
     if (item) {
-      Array.prototype.forEach.call(item.querySelectorAll("a[href]"), function (a) {
-        candidates.push(a.href);
+      ["href", "data-url", "data-link", "title"].forEach(function (attr) {
+        var value = item.getAttribute && item.getAttribute(attr);
+        if (value) candidates.push(value);
+      });
+      Array.prototype.forEach.call(item.querySelectorAll("a[href], [data-url], [data-link]"), function (el) {
+        ["href", "data-url", "data-link", "title"].forEach(function (attr) {
+          var value = el.getAttribute(attr);
+          if (value) candidates.push(value);
+        });
       });
       candidates.push(item.textContent || "");
+      candidates.push(item.innerHTML || "");
     }
 
     for (var i = 0; i < candidates.length; i++) {
-      var value = candidates[i];
-      var match = value.match(/(?:watch\/|watch\?|nico\.ms\/)?((?:sm|nm|so)\d+)/i);
-      if (match && (/nicovideo\.jp|nico\.ms|^(?:sm|nm|so)\d+$/i.test(value) || /(?:sm|nm|so)\d+/i.test(value))) {
-        return match[1];
+      var value = String(candidates[i]);
+      var match = value.match(/(?:watch\/|watch\?|nico\.ms\/|nicovideo\.jp\/watch\/|^)((?:sm|nm|so)\d+)/i);
+      if (match) return match[1].toLowerCase();
+      // Some CyTube media records keep the numeric ID separately from the URL.
+      if (/nico|nicovideo|^nv$|^ni$/.test(mediaType) && /^\d+$/.test(value)) {
+        return "sm" + value;
       }
     }
     return null;
+  }
+
+  function insertNiconicoThumbnail(item, id) {
+    var numericId = id.replace(/^(?:sm|nm|so)/i, "");
+    if (!/^\d+$/.test(numericId)) return;
+
+    var img = document.createElement("img");
+    img.className = "miniature custom-niconico-miniature";
+    img.alt = "";
+    img.loading = "lazy";
+    forceImageSize(img);
+
+    var sources = [
+      "https://tn.smilevideo.jp/smile?i=" + encodeURIComponent(numericId),
+      "https://nicovideo.cdn.nimg.jp/thumbnails/" + encodeURIComponent(numericId) + "/" + encodeURIComponent(numericId),
+      "https://tn-skr3.smilevideo.jp/smile?i=" + encodeURIComponent(numericId)
+    ];
+    var sourceIndex = 0;
+    img.onerror = function () {
+      sourceIndex++;
+      if (sourceIndex < sources.length) img.src = sources[sourceIndex];
+      else img.style.setProperty("display", "none", "important");
+    };
+    img.src = sources[sourceIndex];
+
+    var buttonGroup = item.querySelector(".btn-group");
+    if (buttonGroup && !(window.USEROPTS && window.USEROPTS.qbtn_idontlikechange)) {
+      buttonGroup.parentNode.insertBefore(img, buttonGroup);
+    } else {
+      item.appendChild(img);
+    }
+    forceImageSize(img);
   }
 
   function addNiconicoThumbnails() {
     var queue = document.querySelector("#queue");
     if (!queue) return;
 
-    Array.prototype.forEach.call(queue.querySelectorAll("li"), function (item) {
-      if (item.querySelector("img.miniature")) return;
+    Array.prototype.forEach.call(queue.querySelectorAll("li.queue_entry, li"), function (item) {
+      if (item.querySelector("img.custom-niconico-miniature")) return;
 
-      var id = getNiconicoId(item);
+      var id = findNiconicoId(item);
       if (!id) return;
 
-      // This legacy thumbnail endpoint redirects to Niconico's current thumbnail
-      // when available. Some videos may not resolve; this is best-effort support.
-      var numericId = id.replace(/^(?:sm|nm|so)/i, "");
-      if (!/^\d+$/.test(numericId)) return;
-
-      var img = document.createElement("img");
-      img.className = "miniature custom-niconico-miniature";
-      img.alt = "";
-      img.width = 70;
-      img.height = 48;
-      img.src = "https://tn.smilevideo.jp/smile?i=" + encodeURIComponent(numericId);
-      img.onerror = function () {
-        if (img.dataset.fallbackTried) {
-          img.style.display = "none";
-          return;
-        }
-        img.dataset.fallbackTried = "1";
-        img.src = "https://nicovideo.cdn.nimg.jp/thumbnails/" +
-          encodeURIComponent(numericId) + "/" + encodeURIComponent(numericId);
-      };
-
-      var buttonGroup = item.querySelector(".btn-group");
-      if (buttonGroup && !(window.USEROPTS && USEROPTS.qbtn_idontlikechange)) {
-        buttonGroup.parentNode.insertBefore(img, buttonGroup);
-      } else {
-        item.appendChild(img);
-      }
+      // Do not duplicate thumbnails already made by Synchtube Premium.
+      if (item.querySelector("img.miniature")) return;
+      insertNiconicoThumbnail(item, id);
     });
   }
 
   function applyThumbnails() {
     if (applying) return;
-    if (typeof queueMiniatures !== "function" ||
-        typeof rebuildMiniatures !== "function" ||
-        typeof $queue === "undefined" ||
-        !$queue.length) {
-      return;
-    }
+    if (typeof queueMiniatures !== "function" || typeof $queue === "undefined" || !$queue.length) return;
 
     applying = true;
     try {
-      // Turn on the Premium thumbnail flag and generate thumbnails for current items.
       if (typeof MINIATURES !== "undefined") MINIATURES = true;
-
       if (observer) observer.disconnect();
 
-      // Remove existing thumbnails first to prevent duplicates.
+      // Rebuild the standard YouTube/Dailymotion thumbnails, then add best-effort Nico support.
       $queue.find("img.miniature").remove();
       queueMiniatures("show");
       addNiconicoThumbnails();
 
-      // Hide the thumbnail toggle so it cannot be switched off from the menu.
+      // Apply the dimensions directly as well as through CSS, overriding existing styles.
+      var queue = document.querySelector("#queue");
+      if (queue) Array.prototype.forEach.call(queue.querySelectorAll("img.miniature"), forceImageSize);
+
       document.querySelectorAll("#pls-10").forEach(function (el) {
         var menuItem = el.closest("li");
         if (menuItem) menuItem.style.display = "none";
         else el.style.display = "none";
       });
     } catch (e) {
-      // If Premium is still initializing, a later retry will apply the changes.
+      // If Premium is still initializing, the retry loop will try again.
     } finally {
-      if (observer && document.querySelector("#queue")) {
-        observer.observe(document.querySelector("#queue"), {
-          childList: true,
-          subtree: true
-        });
-      }
+      var queueAfter = document.querySelector("#queue");
+      if (observer && queueAfter) observer.observe(queueAfter, { childList: true, subtree: true });
       applying = false;
     }
   }
 
   function start() {
     addStyles();
-
     var queue = document.querySelector("#queue");
     if (queue && !observer && window.MutationObserver) {
       observer = new MutationObserver(function (mutations) {
-        // Ignore changes consisting only of thumbnail images.
         var queueChanged = mutations.some(function (mutation) {
           return Array.prototype.some.call(mutation.addedNodes, function (node) {
-            return node.nodeType === 1 &&
-              !(node.matches && node.matches("img.miniature")) &&
-              !(node.querySelector && node.querySelector("img.miniature"));
+            return node.nodeType === 1 && !(node.matches && node.matches("img.miniature"));
           }) || Array.prototype.some.call(mutation.removedNodes, function (node) {
-            return node.nodeType === 1 &&
-              !(node.matches && node.matches("img.miniature")) &&
-              !(node.querySelector && node.querySelector("img.miniature"));
+            return node.nodeType === 1 && !(node.matches && node.matches("img.miniature"));
           });
         });
-
         if (queueChanged) applyThumbnails();
       });
       observer.observe(queue, { childList: true, subtree: true });
     }
-
     applyThumbnails();
   }
 
-  // Wait for Synchtube Premium to finish loading, regardless of script order.
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start);
-  } else {
-    start();
-  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+  else start();
 
-  var attempts = 0;
   var retry = window.setInterval(function () {
-    attempts++;
+    retryCount++;
     addStyles();
     applyThumbnails();
-
-    if (attempts >= 60) window.clearInterval(retry);
+    if (retryCount >= 60) window.clearInterval(retry);
   }, 500);
 })();
