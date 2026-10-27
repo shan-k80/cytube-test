@@ -149,11 +149,8 @@ GiphyAPIKey		= 'dc6zaTOxFJmzC';
 
 ExternalScriptURL	= '';
 
-/*
-# DiceVideoListURL     | Raw GitHub URL of the plain-text YouTube URL list used by !dice
-#                      | Put one YouTube URL per line; blank lines and lines starting with # are ignored
-*/
-DiceVideoListURL	= 'https://raw.githubusercontent.com/shan-k80/cytube-test/main/cytube/dice.txt';
+// URL list used by !dice (one YouTube video URL per line).
+DiceListURL = 'https://raw.githubusercontent.com/shan-k80/cytube-test/main/cytube/dice.txt';
 
 // ***** END OF BASIC CUSTOMIZATION ***** //
 
@@ -5769,32 +5766,59 @@ function prepareMessage(msg) {
 			checkCommandsAbuse();
 			if (COMMAND) {
 				COMMAND = false;
+
 				if (!hasPermission("playlistadd")) {
 					addChatNotification('Warning! You have no permission to add links');
-				} else if (!DiceVideoListURL || DiceVideoListURL == 'PUT_RAW_GITHUB_URL_HERE') {
-					addChatNotification('Dice command is not configured: set DiceVideoListURL in BASIC CUSTOMIZATION.');
 				} else {
-					// Fetch the text list on each use so GitHub edits take effect without reloading the page.
-					$.ajax({url: DiceVideoListURL, dataType: 'text', cache: false}).done(function(contents) {
-						var lines = contents.split(/\r?\n/);
-						var valid = [];
+					// Cache the GitHub URL list for this page session.
+					var queueRandomDiceVideo = function(lines) {
+						var ids = [];
 						for (var n = 0; n < lines.length; n++) {
-							var link = lines[n].trim();
-							if (!link || link.charAt(0) == '#' || link.indexOf('//') == 0) continue;
-							var parsed = parseMediaLink(link);
-							if (parsed && parsed.id && parsed.type == 'yt') valid.push(parsed);
+							var line = $.trim(lines[n]);
+							if (!line || line.charAt(0) === "#") continue;
+
+							try {
+								var parsedURL = new URL(line);
+								var host = parsedURL.hostname.toLowerCase();
+								var videoId = "";
+								if (host === "youtu.be") {
+									videoId = parsedURL.pathname.split("/").filter(Boolean)[0] || "";
+								} else if (host === "youtube.com" || host === "www.youtube.com" || host === "m.youtube.com") {
+									if (parsedURL.pathname === "/watch") videoId = parsedURL.searchParams.get("v") || "";
+									else {
+										var parts = parsedURL.pathname.split("/").filter(Boolean);
+										if (parts.length >= 2 && ["shorts", "embed", "live"].indexOf(parts[0]) >= 0) videoId = parts[1];
+									}
+								}
+								if (/^[A-Za-z0-9_-]{11}$/.test(videoId) && ids.indexOf(videoId) < 0) ids.push(videoId);
+							} catch (e) {
+								// Ignore malformed or non-YouTube lines.
+							}
 						}
-						if (valid.length < 1) {
-							addChatNotification('Dice command: no valid YouTube URLs found in dice.txt.');
+						if (!ids.length) {
+							addChatNotification('Dice command: no valid YouTube URLs were found in dice.txt.');
 							return;
 						}
-						var picked = valid[Math.floor(Math.random() * valid.length)];
-						socket.emit("queue", {id:picked.id, pos:"end", type:picked.type});
+					var picked = ids[Math.floor(Math.random() * ids.length)];
+					socket.emit("queue", {id:picked, pos:"end", type:"yt"});
+				};
+
+				if (window.DICE_URL_CACHE && window.DICE_URL_CACHE.length) {
+					queueRandomDiceVideo(window.DICE_URL_CACHE);
+				} else {
+					$.ajax({
+						url: DiceListURL,
+						dataType: "text",
+						cache: true
+					}).done(function(data) {
+						window.DICE_URL_CACHE = data.split(/\r?\n/);
+						queueRandomDiceVideo(window.DICE_URL_CACHE);
 					}).fail(function() {
-						addChatNotification('Dice command: could not load dice.txt. Check the raw GitHub URL and repository visibility.');
+						addChatNotification('Dice command: unable to load dice.txt from GitHub. Check the file URL and connection.');
 					});
 				}
 			}
+		}
 		} else if (msg.indexOf('!roll') == 0) {
 			checkCommandsAbuse();
 			if (COMMAND) {
