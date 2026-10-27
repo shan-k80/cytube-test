@@ -1,0 +1,155 @@
+/* ==========================================================
+   CyTube プレイリスト整形 CSS
+   チャンネル設定 → 「Javascript / CSS」の CSS 欄に貼り付け
+   対になる JS: njym_playlist.js
+   色や高さは、いちばん上の変数をいじれば調整できます
+   ========================================================== */
+
+#queue {
+  --njym-row-bg:     rgba(0, 0, 0, .45);        /* 行の背景 */
+  --njym-row-bg-alt: rgba(0, 0, 0, .55);        /* 偶数行（縞を消したいなら上と同じ値に） */
+  --njym-line:       rgba(0, 0, 0, .9);         /* 行の区切り線 */
+  --njym-hover:      rgba(255, 255, 255, .14);  /* ホバー時 */
+  --njym-active:     rgba(255, 255, 255, .26);  /* 再生中の行 */
+  --njym-title:      #ffffff;                   /* タイトル文字色 */
+  --njym-sub:        #d0d0d0;                   /* 投稿者名・時間の色 */
+  --njym-row-h:      26px;                      /* 行の最小の高さ */
+  --njym-font-size:  13px;
+
+  counter-reset: njym-n;                        /* 連番のリセット */
+}
+
+/* ---------- 行そのもの ---------- */
+#queue .queue_entry {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--njym-row-h);
+  padding: 2px 8px !important;
+  margin: 0 !important;
+  background-color: var(--njym-row-bg) !important;
+  background-image: none !important;            /* デフォルトの斜線パターンを消す */
+  border: 0 !important;
+  border-bottom: 1px solid var(--njym-line) !important;
+  font-size: var(--njym-font-size);
+  line-height: 1.3;
+  position: relative;
+}
+#queue .queue_entry:nth-child(even) {
+  background-color: var(--njym-row-bg-alt) !important;
+}
+#queue .queue_entry:hover {
+  background-color: var(--njym-hover) !important;
+}
+#queue .queue_entry.queue_active {
+  background-color: var(--njym-active) !important;
+  box-shadow: inset 3px 0 0 #ffffff;            /* 左に白いライン */
+}
+
+/* ---------- ③ 再生順の連番（CSSだけで動作） ---------- */
+#queue .queue_entry::before {
+  counter-increment: njym-n;
+  content: counter(njym-n) ".";
+  order: 0;
+  flex: 0 0 auto;
+  min-width: 2.6em;
+  text-align: right;
+  color: var(--njym-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- ① サイトアイコン（JSが span.njym-site を入れる） ---------- */
+#queue .njym-site {
+  order: 1;
+  flex: 0 0 auto;
+  display: inline-block;
+  width: 22px;
+  height: 16px;
+  border-radius: 3px;
+  background: #666;
+  color: #fff;
+  font: bold 9px/16px sans-serif;
+  text-align: center;
+  overflow: hidden;
+}
+#queue .njym-site::before { content: "▶"; }
+
+/* YouTube（SVGアイコン） */
+#queue .njym-site[data-site="yt"] {
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 16'><rect width='22' height='16' rx='4' fill='%23f00'/><path d='M9 4.5v7l6-3.5z' fill='%23fff'/></svg>") center / contain no-repeat;
+}
+#queue .njym-site[data-site="yt"]::before { content: ""; }
+
+/* ニコニコ（簡易バッジ。本物のロゴ画像に差し替えたい場合は下を参照） */
+#queue .njym-site[data-site="nico"]       { background: #252525; }
+#queue .njym-site[data-site="nico"]::before { content: "ニコ"; }
+/* 例: 画像に差し替える場合
+   #queue .njym-site[data-site="nico"] { background: url("画像のURL") center / contain no-repeat; }
+   #queue .njym-site[data-site="nico"]::before { content: ""; }
+*/
+
+/* そのほか */
+#queue .njym-site[data-site="vimeo"]       { background: #1ab7ea; }
+#queue .njym-site[data-site="vimeo"]::before { content: "Vi"; }
+#queue .njym-site[data-site="dm"]          { background: #0066dc; }
+#queue .njym-site[data-site="dm"]::before    { content: "DM"; }
+#queue .njym-site[data-site="sc"]          { background: #f50; }
+#queue .njym-site[data-site="sc"]::before    { content: "SC"; }
+#queue .njym-site[data-site="tw"]          { background: #9146ff; }
+#queue .njym-site[data-site="tw"]::before    { content: "Tw"; }
+#queue .njym-site[data-site="bili"]        { background: #00a1d6; }
+#queue .njym-site[data-site="bili"]::before  { content: "Bi"; }
+#queue .njym-site[data-site="gd"]          { background: #1a9a5a; }
+#queue .njym-site[data-site="gd"]::before    { content: "GD"; }
+#queue .njym-site[data-site="file"]        { background: #777; }
+#queue .njym-site[data-site="file"]::before  { content: "FILE"; font-size: 7px; }
+
+/* ---------- タイトル ---------- */
+#queue .queue_entry .qe_title {
+  order: 2;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: block;
+  float: none !important;
+  color: var(--njym-title) !important;
+  font-weight: bold;
+  white-space: nowrap;           /* 長いタイトルは「…」で省略 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* ↑全文を折り返して見せたい場合は、上の3行を
+     white-space: normal; にして overflow / text-overflow を消す */
+}
+
+/* ---------- ボタン（ホバー時に出るやつ） ---------- */
+#queue .queue_entry .btn-group {
+  order: 3;
+  flex: 0 0 auto;
+  float: none !important;
+}
+
+/* ---------- ② 投稿ユーザー名 ---------- */
+#queue .njym-user {
+  order: 4;
+  flex: 0 0 auto;
+  max-width: 11em;
+  min-width: 3em;
+  text-align: right;
+  color: var(--njym-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- 動画時間 ---------- */
+#queue .queue_entry .qe_time {
+  order: 5;
+  flex: 0 0 auto;
+  float: none !important;
+  min-width: 3.6em;
+  text-align: right;
+  color: var(--njym-sub) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* clearfix用の空要素は不要なので消す */
+#queue .queue_entry .qe_clear { display: none !important; }
