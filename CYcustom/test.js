@@ -6714,7 +6714,7 @@ var chatlineHT = $chatline.outerHeight();
 var chatbtnHT = (USEROPTS.chatbtn) ? $("#chatbtn").outerHeight() : 0;
 if (PlayerCoveringURL == "") PlayerCoveringURL = DROPBOX + '3qp3v6ychbswqvm/stop.png';
 
-var css = '#queue img, #queue .miniature {display:none !important}\n'
+var css = '#queue .miniature {display:none !important}\n'
 	+ '.autoscroll {overflow-y:auto !important}\n'
 	+ '.expanded {max-height:100000px !important}\n'
 	+ '.hidden {display:none !important}\n'
