@@ -1,12 +1,13 @@
 (function () {
   "use strict";
-
+ 
   // Synchtube Premium標準のサムネイル機能を停止し、独立した40×27px表示に置き換える。
+  // 対応: YouTube(yt) / Dailymotion(dm) / ニコニコ動画(nv)
   var STYLE_ID = "custom-miniatures-40x27-style";
   var OWN_CLASS = "custom-playlist-thumbnail";
   var observer = null;
   var busy = false;
-
+ 
   function addStyle() {
     var style = document.getElementById(STYLE_ID);
     if (!style) {
@@ -22,7 +23,7 @@
       "object-fit:cover!important;box-sizing:border-box!important;" +
       "vertical-align:middle!important;}";
   }
-
+ 
   function getMedia(item) {
     if (window.jQuery) {
       var media = window.jQuery(item).data("media");
@@ -30,26 +31,45 @@
     }
     return null;
   }
-
+ 
   function getThumbnailUrl(media) {
     if (!media || !media.id) return "";
     var id = String(media.id);
     if (media.type === "yt") return "https://img.youtube.com/vi/" + encodeURIComponent(id) + "/1.jpg";
     if (media.type === "dm") return "https://www.dailymotion.com/thumbnail/video/" + encodeURIComponent(id);
+    if (media.type === "nv") {
+      // sm / nm + 数字のIDのみ対応（so始まりは対象外）
+      var nico = id.match(/^(?:sm|nm)(\d+)$/);
+      if (nico) return "https://nicovideo.cdn.nimg.jp/thumbnails/" + nico[1] + "/" + nico[1];
+    }
     return "";
   }
-
+ 
   function addThumbnail(item) {
-    if (!item || item.querySelector("img." + OWN_CLASS)) return;
+    // 取得に失敗した行は再試行しない（MutationObserverとの無限ループ防止）
+    if (!item || item.dataset.customThumbFailed || item.querySelector("img." + OWN_CLASS)) return;
     var media = getMedia(item);
     var url = getThumbnailUrl(media);
     if (!url) return;
-
+ 
     var img = document.createElement("img");
     img.className = OWN_CLASS;
     img.alt = "";
     img.loading = "lazy";
+    img.referrerPolicy = "no-referrer";
+ 
+    // ニコニコは取得失敗時に別サイズ(.M, .L)を順に試し、全滅なら諦める
+    var fallbacks = media.type === "nv" ? [".M", ".L"] : [];
+    img.onerror = function () {
+      if (fallbacks.length) {
+        img.src = url + fallbacks.shift();
+      } else {
+        item.dataset.customThumbFailed = "1";
+        img.remove();
+      }
+    };
     img.src = url;
+ 
     var buttonGroup = item.querySelector(".btn-group");
     if (buttonGroup && !(window.USEROPTS && window.USEROPTS.qbtn_idontlikechange)) {
       buttonGroup.parentNode.insertBefore(img, buttonGroup);
@@ -57,7 +77,7 @@
       item.appendChild(img);
     }
   }
-
+ 
   function render() {
     if (busy) return;
     var queue = document.querySelector("#queue");
@@ -76,7 +96,7 @@
       busy = false;
     }
   }
-
+ 
   function disableNativeFeature() {
     // Prevent later Synchtube Premium rebuilds from recreating its own thumbnails.
     if (typeof window.queueMiniatures === "function" && !window.queueMiniatures.__customDisabled) {
@@ -86,12 +106,12 @@
     }
     if (typeof window.MINIATURES !== "undefined") window.MINIATURES = false;
   }
-
+ 
   function start() {
     addStyle();
     disableNativeFeature();
     render();
-
+ 
     var queue = document.querySelector("#queue");
     if (queue && window.MutationObserver && !observer) {
       observer = new MutationObserver(function () {
@@ -101,7 +121,7 @@
       });
       observer.observe(queue, { childList: true, subtree: true });
     }
-
+ 
     // Handles cases where this script loads before Synchtube Premium finishes initializing.
     var attempts = 0;
     var retry = window.setInterval(function () {
@@ -112,10 +132,11 @@
       if (attempts >= 30) window.clearInterval(retry);
     }, 500);
   }
-
+ 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start);
   } else {
     start();
   }
 })();
+ 
