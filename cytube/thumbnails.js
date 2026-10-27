@@ -12,10 +12,10 @@
     style.id = STYLE_ID;
     style.textContent =
       "#queue img.miniature {" +
-      "width: 90px !important;" +
-      "height: 68px !important;" +
-      "max-width: 90px !important;" +
-      "max-height: 68px !important;" +
+      "width: 70px !important;" +
+      "height: 48px !important;" +
+      "max-width: 70px !important;" +
+      "max-height: 48px !important;" +
       "object-fit: cover;" +
       "}";
     document.head.appendChild(style);
