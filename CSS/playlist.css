@@ -171,6 +171,11 @@
 #pllength {
   font-size: var(--qlist-total-size) !important;
   font-weight: bold !important;
+  color: #ff9800 !important;                      /* オレンジ（#pllength は #queue の外にあるので、変数ではなく直接指定） */
   line-height: 1.2;
+}
+/* 数字の前に「合計時間:」を添える */
+#pllength::before {
+  content: "合計時間: ";
 }
  
