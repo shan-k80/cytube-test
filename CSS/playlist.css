@@ -4,7 +4,7 @@
    対になる JS: queue_list.js
    色や高さは、いちばん上の変数をいじれば調整できます
    ========================================================== */
-
+ 
 #queue {
   --qlist-row-bg:     rgba(0, 0, 0, .45);        /* 行の背景 */
   --qlist-row-bg-alt: rgba(0, 0, 0, .55);        /* 偶数行（縞を消したいなら上と同じ値に） */
@@ -15,10 +15,11 @@
   --qlist-sub:        #d0d0d0;                   /* 投稿者名・時間の色 */
   --qlist-row-h:      26px;                      /* 行の最小の高さ */
   --qlist-font-size:  13px;
-
+  --qlist-total-size: 18px;                     /* 総再生時間の文字サイズ */
+ 
   counter-reset: qlist-n;                        /* 連番のリセット */
 }
-
+ 
 /* ---------- 行そのもの ---------- */
 #queue .queue_entry {
   display: flex !important;
@@ -45,19 +46,19 @@
   background-color: var(--qlist-active) !important;
   box-shadow: inset 3px 0 0 #ffffff;            /* 左に白いライン */
 }
-
+ 
 /* ---------- ③ 再生順の連番（CSSだけで動作） ---------- */
 #queue .queue_entry::before {
   counter-increment: qlist-n;
   content: counter(qlist-n) ".";
   order: 0;
   flex: 0 0 auto;
-  min-width: 2.6em;
+  min-width: 2em;                               /* 連番の幅。3桁(100件超)でも自動で広がる */
   text-align: right;
   color: var(--qlist-sub);
   font-variant-numeric: tabular-nums;
 }
-
+ 
 /* ---------- ① サイトアイコン（JSが span.qlist-site を入れる） ---------- */
 #queue .qlist-site {
   order: 1;
@@ -73,13 +74,13 @@
   overflow: hidden;
 }
 #queue .qlist-site::before { content: "▶"; }
-
+ 
 /* YouTube（SVGアイコン） */
 #queue .qlist-site[data-site="yt"] {
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 16'><rect width='22' height='16' rx='4' fill='%23f00'/><path d='M9 4.5v7l6-3.5z' fill='%23fff'/></svg>") center / contain no-repeat;
 }
 #queue .qlist-site[data-site="yt"]::before { content: ""; }
-
+ 
 /* ニコニコ（簡易バッジ。本物のロゴ画像に差し替えたい場合は下を参照） */
 #queue .qlist-site[data-site="nico"]       { background: #252525; }
 #queue .qlist-site[data-site="nico"]::before { content: "ニコ"; }
@@ -87,7 +88,7 @@
    #queue .qlist-site[data-site="nico"] { background: url("画像のURL") center / contain no-repeat; }
    #queue .qlist-site[data-site="nico"]::before { content: ""; }
 */
-
+ 
 /* そのほか */
 #queue .qlist-site[data-site="vimeo"]       { background: #1ab7ea; }
 #queue .qlist-site[data-site="vimeo"]::before { content: "Vi"; }
@@ -103,7 +104,7 @@
 #queue .qlist-site[data-site="gd"]::before    { content: "GD"; }
 #queue .qlist-site[data-site="file"]        { background: #777; }
 #queue .qlist-site[data-site="file"]::before  { content: "FILE"; font-size: 7px; }
-
+ 
 /* ---------- タイトル ---------- */
 #queue .queue_entry .qe_title {
   order: 2;
@@ -119,14 +120,14 @@
   /* ↑全文を折り返して見せたい場合は、上の3行を
      white-space: normal; にして overflow / text-overflow を消す */
 }
-
+ 
 /* ---------- ボタン（ホバー時に出るやつ） ---------- */
 #queue .queue_entry .btn-group {
   order: 3;
   flex: 0 0 auto;
   float: none !important;
 }
-
+ 
 /* ---------- ② 投稿ユーザー名 ---------- */
 #queue .qlist-user {
   order: 4;
@@ -139,7 +140,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
+ 
 /* ---------- 動画時間 ---------- */
 #queue .queue_entry .qe_time {
   order: 5;
@@ -150,6 +151,20 @@
   color: var(--qlist-sub) !important;
   font-variant-numeric: tabular-nums;
 }
-
+ 
 /* clearfix用の空要素は不要なので消す */
 #queue .queue_entry .qe_clear { display: none !important; }
+ 
+/* ---------- リスト全体の左余白を詰める ---------- */
+#queue {
+  padding-left: 0 !important;    /* ul のデフォルト余白(約40px)を消す */
+  margin-left: 0 !important;
+}
+ 
+/* ---------- 総再生時間（ヘッダー右端の 09:40 など）を大きく・太く ---------- */
+#pllength {
+  font-size: var(--qlist-total-size) !important;
+  font-weight: bold !important;
+  line-height: 1.2;
+}
+ 
