@@ -210,12 +210,10 @@ NOAUTOSCROLL	= getOrDefault('SP_noautoscroll',	false);
 PLAYERTEXT	= getOrDefault('SP_playertext',		false);
 PLAYWELCOME	= getOrDefault('SP_playwelcome',	true);
 PLSNOSCROLL	= getOrDefault('SP_plsnoscroll',	false);
-PLSNUMBERS	= getOrDefault('SP_plsnumbers',		true);
 PROGRESSBAR	= getOrDefault('SP_progressbar',	true);
 RADIOMODE	= getOrDefault('SP_radiomode',		false);
 SAVEMENTIONS	= getOrDefault('SP_savementions',	true);
 SCROLLNAVBAR	= getOrDefault('SP_scrollnavbar',	false);
-SHOWCONTRIBS	= getOrDefault('SP_showcontribs',	true);
 SHOWIMAGES	= getOrDefault('SP_showimages',		false);
 SHOWMASCOT	= getOrDefault('SP_showmascot',		false);
 SHOWOEKAKI	= getOrDefault('SP_showoekaki',		false);
@@ -1756,21 +1754,6 @@ function chatHeight(mode) {
 	$chatline.focus();
 }
 
-function contributorsNames(mode) {
-	if (mode == "hide") {
-		$queue.find("li .contrib").each(function() {
-			$(this).remove();
-		});
-	} else if (mode == "show") {
-		$queue.find("li").each(function() {
-			var contr = $(this).attr('title').replace('Added by: ', '');
-			var time = $(this).find(".qe_time");
-			time.find(".contrib").remove()
-			time.html('<span class="contrib">' + contr + ' | </span>' + time.html());
-		});
-	}
-}
-
 function mediaTimeLeft(mode) {
 	if (mode == "hide") {
 		clearInterval(TIMELEFTCLOCK);
@@ -1918,11 +1901,6 @@ function queueButtons(mode) {
 			} else alert('You have no permission to display playlist buttons on this channel.');
 		}
 	} else if (mode == "hide") $queue.addClass('nobuttons');
-}
-
-function queueMode(mode) {
-	if (mode == "default") $queue.removeClass('numbered')
-	else if (mode == "numbered") $queue.addClass('numbered');
 }
 
 function queueScrollbar(mode) {
@@ -2233,14 +2211,6 @@ function removeLegacyPlaylistControls() {
 }
 removeLegacyPlaylistControls();
 
-if (PLSNUMBERS) {
-	$("#pls-4").addClass('activated');
-	queueMode("numbered");
-}
-if (SHOWCONTRIBS) {
-	$("#pls-5").addClass('activated');
-	contributorsNames("show");
-}
 if (PLSNOSCROLL) {
 	$("#pls-9").addClass('activated');
 	queueScrollbar("hide");
@@ -2575,10 +2545,6 @@ $favscontrol = $('<div id="favscontrol" class="col-lg-12 col-md-12 pl" />').inse
 // Playlist container ID
 
 $queue.parent().attr('id', 'queue-parent');
-
-// Show contributors (if enabled)
-
-if (SHOWCONTRIBS) contributorsNames("show");
 
 
 // Playlist labels
@@ -3795,18 +3761,6 @@ $("#pls-1").on("click", function() {
 	  });
 });
 
-
-$("#pls-4").on("click", function() {
-	PLSNUMBERS ? queueMode("default") : queueMode("numbered");
-	$(this).toggleClass('activated');
-	setOpt('SP_plsnumbers', PLSNUMBERS = !PLSNUMBERS);
-});
-
-$("#pls-5").on("click", function() {
-	SHOWCONTRIBS ? contributorsNames("hide") : contributorsNames("show");
-	$(this).toggleClass('activated');
-	setOpt('SP_showcontribs', SHOWCONTRIBS = !SHOWCONTRIBS);
-});
 
 $("#pls-6").on("click", function() {
 	$("#pls-menu").find("li[group=1]").hide();
@@ -6733,11 +6687,6 @@ var css = '#queue .miniature {display:none !important}\n'
 	+ '  -o-transform:scaleY(-1) !important;\n'
 	+ '}\n'
 	+ '.noscroll {overflow:hidden !important}\n'
-	+ '.numbered {\n'
-	+   'list-style:decimal !important; padding-left:45px !important;\n'
-	+   'border-style:solid solid none !important; border-width:1px !important;\n'
-	+ '}\n'
-	+ 'body.bright .numbered {border-color:#AAA !important}\n'
 	+ '.opt:not(.activated) .glyphicon-ok {display:none !important}\n'
 	+ '.related {position:related !important}\n'
 	+ 'body.glued #motdrow > div, body.glued #announcements > div, body.glued #drinkbar, body.glued #titlewrap \n'
@@ -7007,7 +6956,6 @@ socket.on("channelCSSJS", function() {
 socket.on("channelOpts", pageTitle);
 socket.on("login", handleLogin);
 socket.on("queue", function(data) {
-	if (SHOWCONTRIBS) contributorsNames("show");
 	if ((data.item.queueby == CLIENT.name) || (!data.item.queueby && CLIENT.name == "")) {
 		var link = formatURL(data.item.media);
 		ADDEDLINKS = getOrDefault('SP_addedlinks_' + CLIENT.name, '[]');
