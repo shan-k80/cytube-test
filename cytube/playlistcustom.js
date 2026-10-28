@@ -5,6 +5,7 @@
    やっていること:
      ① 投稿元サイトのアイコン用 <span> を追加
      ② 投稿ユーザー名を動画時間の隣に追加（匿名は空欄）
+     ③ 自分が投稿した動画の投稿者名に .mine クラスを付ける（色替え用）
    ========================================================== */
 (function () {
   "use strict";
@@ -51,6 +52,25 @@
     return m ? m[1].trim() : "";
   }
 
+  // ---- ③ 自分の投稿かどうか判定して .mine を付け外し ----
+  function myName() {
+    // CyTube のグローバル CLIENT.name（ゲストなら Guest名）。未ログイン時は空
+    return (window.CLIENT && window.CLIENT.name)
+      ? String(window.CLIENT.name).toLowerCase() : "";
+  }
+
+  function markMine(el) {
+    var me = myName();
+    var u = (el.getAttribute("data-user") || "").toLowerCase();
+    // 匿名（空欄）の投稿は対象外。名前は大文字小文字を区別せず比較
+    el.classList.toggle("mine", !!me && !!u && me === u);
+  }
+
+  function markAllMine(queue) {
+    var users = queue.querySelectorAll(".qlist-user");
+    for (var i = 0; i < users.length; i++) markMine(users[i]);
+  }
+
   function decorate(li) {
     if (!li || li.nodeType !== 1 || !li.classList.contains("queue_entry")) return;
     if (li.getAttribute("data-qlist") === "1") return;
@@ -65,10 +85,13 @@
     icon.setAttribute("data-site", site);
     li.insertBefore(icon, title);
 
+    var name = detectUser(li);
     var user = document.createElement("span");
     user.className = "qlist-user";
-    user.textContent = detectUser(li);     // 匿名なら空文字のまま
+    user.setAttribute("data-user", name);
+    user.textContent = name;               // 匿名なら空文字のまま
     li.insertBefore(user, time);
+    markMine(user);
   }
 
   function decorateAll(queue) {
@@ -83,6 +106,16 @@
         for (var i = 0; i < m.addedNodes.length; i++) decorate(m.addedNodes[i]);
       });
     }).observe(queue, { childList: true });
+
+    // ログイン／名前確定のタイミングで判定し直す
+    // （ページ読み込み直後は CLIENT.name が空のことがあるため）
+    if (window.socket && typeof window.socket.on === "function") {
+      window.socket.on("login", function () {
+        setTimeout(function () { markAllMine(queue); }, 0);
+      });
+    }
+    // 念のため、起動後しばらくしてからも1回判定し直す
+    setTimeout(function () { markAllMine(queue); }, 3000);
   }
 
   // #queue ができるまで待つ（読み込みタイミング対策）
