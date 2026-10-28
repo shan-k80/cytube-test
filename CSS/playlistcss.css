@@ -13,6 +13,7 @@
   --qlist-active:     rgba(255, 255, 255, .26);  /* 再生中の行 */
   --qlist-title:      #ffffff;                   /* タイトル文字色 */
   --qlist-sub:        #d0d0d0;                   /* 投稿者名・時間の色 */
+  --qlist-mine:       #ffd54a;                   /* 自分が投稿した動画の投稿者名の色 */
   --qlist-row-h:      26px;                      /* 行の最小の高さ */
   --qlist-font-size:  13px;
   --qlist-total-size: 18px;                     /* 総再生時間の文字サイズ */
@@ -140,6 +141,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* 自分が投稿した動画の投稿者名（JSが .mine を付ける） */
+#queue .qlist-user.mine {
+  color: var(--qlist-mine);
+  font-weight: bold;
+}
  
 /* ---------- 動画時間 ---------- */
 #queue .queue_entry .qe_time {
@@ -165,6 +171,11 @@
 #pllength {
   font-size: var(--qlist-total-size) !important;
   font-weight: bold !important;
+  color: #ff9800 !important;                      /* オレンジ（#pllength は #queue の外にあるので、変数ではなく直接指定） */
   line-height: 1.2;
+}
+/* 数字の前に「合計時間:」を添える */
+#pllength::before {
+  content: "合計時間: ";
 }
  
