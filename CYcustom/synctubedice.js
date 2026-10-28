@@ -95,11 +95,11 @@ For advanced admins (own hosting required). Absolutely DO NOT DELETE any given v
 # ExternalScriptURL	| URL of an optional, additional external JavaScript file
 */
 
-FaviconURL		= '';
+FaviconURL		= 'https://raw.githubusercontent.com/shan-k80/cytube-test/main/cytube/uyu.webp';
 
 ChannelName		= '';
 
-MiniLogoURL		= '';
+MiniLogoURL		= 'https://raw.githubusercontent.com/shan-k80/cytube-test/main/cytube/uyu.webp';
 
 CustomWelcomeText	= '';
 
@@ -436,9 +436,9 @@ function alterMOTD() {
 
 function checkCommandsAbuse() {
 	var time = new Date().getTime();
-	if (COMMANDSTSTAMPS.length > 4) {
+	if (COMMANDSTSTAMPS.length > 9) {
 		if (time - COMMANDSTSTAMPS[0] < 60000) {
-			addChatNotification('Warning: abuse of the random-type commands (5 times per minute allowed)');
+			addChatNotification('Warning: abuse of the random-type commands (10 times per minute allowed)');
 			COMMAND = false;
 		}
 		COMMANDSTSTAMPS.shift();
