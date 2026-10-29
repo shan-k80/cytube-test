@@ -1,15 +1,6 @@
 # 1行につきYouTube動画URLを1つ記載してください。
 # 空行と # で始まるコメント行は無視されます。
 https://www.youtube.com/watch?v=2hasRHh6D4U
-https://www.youtube.com/watch?v=n5462bVTJY8
-https://www.youtube.com/watch?v=zi-HKB3FiPc
-https://www.youtube.com/watch?v=a77m_WSa93A
-https://www.youtube.com/watch?v=KboHQwZQSjk
-https://www.youtube.com/watch?v=KrJVRrEvoag
-https://www.youtube.com/watch?v=hfxFujlRcKk
-https://www.youtube.com/watch?v=5RayVZH80sQ
-https://www.youtube.com/watch?v=WDDPudbjlOE
-https://www.youtube.com/watch?v=liheK8EPNrc
 https://www.youtube.com/watch?v=TsVw4VcbSbE
 https://www.youtube.com/watch?v=NLTiYb5bshw
 https://www.youtube.com/watch?v=yqQDpA6eb28
@@ -88,15 +79,3 @@ https://www.youtube.com/watch?v=AvJ4aKILZnw
 https://www.youtube.com/watch?v=5H6VMwByPgA
 https://www.youtube.com/watch?v=sCLJI3SKqTg
 https://www.youtube.com/watch?v=HGQf8oq0aBQ
-https://www.youtube.com/watch?v=3SgyNMNAx_g
-https://www.youtube.com/watch?v=jlGnGBKS82E
-https://www.youtube.com/watch?v=VfAnRiH57KE
-https://www.youtube.com/watch?v=aqwjv-uqkZA
-https://www.youtube.com/watch?v=5mtAF7ADW9g
-https://www.youtube.com/watch?v=QCqUPEqkCjo
-https://www.youtube.com/watch?v=WKTjIyW8RBk
-https://www.youtube.com/watch?v=JyyEJD0yFf0
-https://www.youtube.com/watch?v=4HrBZFolpb4
-https://www.youtube.com/watch?v=UOet8AyvunY
-https://www.youtube.com/watch?v=ga2u-RKYa1U
-https://www.youtube.com/watch?v=pX9TjGsxT3s
