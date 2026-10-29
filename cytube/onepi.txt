@@ -1,6 +1,7 @@
 # onepieceOP/ED
 # 1行につきYouTube動画URLを1つ記載してください。
 # 空行と # で始まるコメント行は無視されます。
+https://www.youtube.com/watch?v=2hasRHh6D4U
 https://www.youtube.com/watch?v=X48ZNGHBa8A
 https://www.youtube.com/watch?v=YFbno_aPm0w
 https://www.youtube.com/watch?v=VHxeuLf_eRs
